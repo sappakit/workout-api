@@ -1,7 +1,15 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Role } from './role.entity';
 import { UserProfile } from './user-profile.entity';
 import { BaseEntity } from '../shared/base.entity';
+import { WorkoutSchedule } from '../workout';
 
 @Entity({ schema: 'auth', name: 'user' })
 export class User extends BaseEntity {
@@ -26,4 +34,7 @@ export class User extends BaseEntity {
   @ManyToOne(() => Role, (role) => role.users, { nullable: false })
   @JoinColumn({ name: 'role_id' })
   role: Role;
+
+  @OneToMany(() => WorkoutSchedule, (schedule) => schedule.user)
+  workout_schedules: WorkoutSchedule[];
 }
