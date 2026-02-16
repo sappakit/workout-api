@@ -1,12 +1,26 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Auth } from './decorators/auth.decorator';
-import { AuthType } from './enums/auth.enum';
-import { ApiResponse } from '@nestjs/swagger';
+import {
+  type ActiveUserData,
+  type LocalValidatedUser,
+  AuthType,
+} from './enums/auth.enum';
+import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { LoginDto, RegisterDto } from './dto/auth-body.dto';
 import { LoginResponseDto, UserResponseDto } from './dto/auth-response.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
+import { ActiveUser } from './decorators/active-user.decorator';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
 @Serialize(UserResponseDto)
@@ -26,6 +40,7 @@ export class AuthController {
   }
 
   @Auth(AuthType.PUBLIC)
+  @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
@@ -34,7 +49,20 @@ export class AuthController {
     type: LoginResponseDto,
   })
   @Serialize(LoginResponseDto)
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() _dto: LoginDto, @ActiveUser() user: LocalValidatedUser) {
+    return this.authService.login(user);
+  }
+
+  @Auth(AuthType.USER)
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'Get the currently authenticated user',
+    type: UserResponseDto,
+  })
+  @Serialize(UserResponseDto)
+  async loadUser(@ActiveUser('sub') userId: number) {
+    return this.authService.loadUser(userId);
   }
 }

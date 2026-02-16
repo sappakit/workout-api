@@ -25,6 +25,10 @@ export class UserResponseDto {
   username: string;
 
   @Expose()
+  @ApiProperty()
+  email: string;
+
+  @Expose()
   @Type(() => RoleResponseDto)
   @ApiProperty()
   role: RoleResponseDto;

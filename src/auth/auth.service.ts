@@ -10,6 +10,7 @@ import { DataSource, Repository } from 'typeorm';
 import { HashingService } from 'src/hashing/services/hashing.service';
 import { TokenService } from './token/token.service';
 import { LoginDto, RegisterDto } from './dto/auth-body.dto';
+import { ActiveUserData, LocalValidatedUser } from './enums/auth.enum';
 
 @Injectable()
 export class AuthService {
@@ -27,17 +28,60 @@ export class AuthService {
     private readonly roleRepo: Repository<Role>,
   ) {}
 
+  async validateUser(dto: LoginDto) {
+    const { identifier: identifierRaw, password } = dto;
+
+    const identifier = identifierRaw.trim();
+    const identifierLower = identifier.toLowerCase();
+
+    const user = await this.userRepo.findOne({
+      where: [{ username: identifier }, { email: identifierLower }],
+      relations: { role: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password_hash: true,
+        role: {
+          code: true,
+          name: true,
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    const isPasswordValid = await this.hashingService.compare(
+      password,
+      user.password_hash,
+    );
+
+    if (!isPasswordValid) return null;
+
+    return user;
+  }
+
   async register(dto: RegisterDto) {
-    const { username, email, password, firstName, lastName } = dto;
+    // Normalize input
+    const username = dto.username.trim();
+    const email = dto.email.trim().toLowerCase();
+    const password = dto.password;
+    const firstName = dto.firstName?.trim();
+    const lastName = dto.lastName?.trim();
 
     await this.dataSource.transaction(async (manager) => {
-      // Check username
-      const existingUser = await manager.findOne(User, {
-        where: { username },
-      });
+      // Check user existence
+      const [usernameExists, emailExists] = await Promise.all([
+        manager.exists(User, { where: { username } }),
+        manager.exists(User, { where: { email } }),
+      ]);
 
-      if (existingUser) {
+      if (usernameExists) {
         throw new ConflictException('Username already exists');
+      }
+
+      if (emailExists) {
+        throw new ConflictException('Email already exists');
       }
 
       // Hash password
@@ -79,39 +123,12 @@ export class AuthService {
     return { message: 'User created successfully' };
   }
 
-  async login(dto: LoginDto) {
-    const { username, password } = dto;
-
-    const user = await this.userRepo.findOne({
-      where: { username },
-      relations: { role: true },
-      select: {
-        id: true,
-        username: true,
-        password_hash: true,
-        role: {
-          code: true,
-          name: true,
-        },
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid username or password');
-    }
-
-    const isPasswordValid = await this.hashingService.compare(
-      password,
-      user.password_hash,
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid username or password');
-    }
-
+  async login(user: LocalValidatedUser) {
+    // Generate tokens
     const accessTokenPromise = this.tokenService.generateAccessToken({
       sub: user.id,
       username: user.username,
+      role: user.role.code,
     });
 
     const refreshTokenPromise = this.tokenService.generateRefreshToken({
@@ -123,12 +140,14 @@ export class AuthService {
       refreshTokenPromise,
     ]);
 
+    // Return response
     const response = {
       accessToken,
       refreshToken,
       user: {
         id: user.id,
         username: user.username,
+        email: user.email,
         role: {
           code: user.role.code,
           name: user.role.name,
@@ -137,5 +156,27 @@ export class AuthService {
     };
 
     return response;
+  }
+
+  async loadUser(userId: number) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: { role: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: {
+          code: true,
+          name: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
   }
 }

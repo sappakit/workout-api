@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -11,7 +12,7 @@ export class LoginDto {
   @IsNotEmpty()
   @IsString()
   @ApiProperty({ example: 'john_doe' })
-  username: string;
+  identifier: string;
 
   @IsNotEmpty()
   @IsString()
@@ -20,7 +21,18 @@ export class LoginDto {
   password: string;
 }
 
-export class RegisterDto extends LoginDto {
+export class RegisterDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({ example: 'john_doe' })
+  username: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @ApiProperty({ minLength: 8, example: 'pass1234' })
+  password: string;
+
   @IsNotEmpty()
   @IsEmail()
   @ApiProperty({ example: 'john@example.com' })

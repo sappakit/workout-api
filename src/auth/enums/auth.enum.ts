@@ -4,10 +4,17 @@ export enum AuthType {
   ADMIN = 'admin',
 }
 
-export interface ActiveUserData {
-  sub: string; // user id
+export type ActiveUserData = {
+  sub: number; // user id
   username?: string;
   role?: string;
   permissions?: string[];
   tokenType?: 'access' | 'refresh' | 'info';
-}
+};
+
+export type LocalValidatedUser = {
+  id: number;
+  username: string;
+  email: string;
+  role: { code: string; name: string };
+};
