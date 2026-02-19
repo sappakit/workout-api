@@ -10,7 +10,7 @@ const dbSchema = (suffix = '') =>
     [`DB_NAME${suffix}`]: Joi.string().required(),
   }).unknown(true);
 
-export const dbValidationSchema = Joi.object({
+const dbValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production').required(),
 })
   .when(Joi.object({ NODE_ENV: 'development' }).unknown(true), {
@@ -21,7 +21,7 @@ export const dbValidationSchema = Joi.object({
   });
 
 // JWT validation
-export const jwtValidationSchema = Joi.object({
+const jwtValidationSchema = Joi.object({
   JWT_ACCESS_SECRET: Joi.string().required(),
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_ACCESS_TOKEN_TTL: Joi.number().default(900),
@@ -32,8 +32,16 @@ export const jwtValidationSchema = Joi.object({
   BCRYPT_SALT_ROUNDS: Joi.number().min(8).max(15).default(10),
 }).unknown(true);
 
+// Redis validation
+const redisSchema = Joi.object({
+  REDIS_HOST: Joi.string().default('127.0.0.1'),
+  REDIS_PORT: Joi.number().port().default(6379),
+  REDIS_PASSWORD: Joi.string().allow('').optional(),
+  REDIS_DB: Joi.number().integer().min(0).max(15).default(0),
+}).unknown(true);
+
 // Merge schemas
-const schemas = [dbValidationSchema, jwtValidationSchema];
+const schemas = [dbValidationSchema, jwtValidationSchema, redisSchema];
 
 export const envValidationSchema = schemas.reduce(
   (acc, schema) => acc.concat(schema),

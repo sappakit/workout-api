@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
-import { getDBEnv } from 'utils/getDBEnv';
 import { AllEntities } from './entities';
+import { getDBEnv } from 'utils/getDBEnv.util';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const db = getDBEnv(isDev, (key) => process.env[key]);

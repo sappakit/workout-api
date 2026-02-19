@@ -2,11 +2,10 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigType } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import jwtConfig from './config/jwt.config';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { AppAuthGuard } from './guards/auth.guard';
@@ -15,6 +14,8 @@ import { HashingModule } from 'src/hashing/hashing.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role, User, UserProfile } from 'db/entities/auth';
 import { TokenModule } from './token/token.module';
+import { RedisModule } from 'src/redis/redis.module';
+import { RefreshTokenStore } from './session/refresh-session.store';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { TokenModule } from './token/token.module';
     JwtModule.registerAsync({
       imports: [ConfigModule.forFeature(jwtConfig)],
       inject: [jwtConfig.KEY],
-      useFactory: (jwt) => ({
+      useFactory: (jwt: ConfigType<typeof jwtConfig>) => ({
         secret: jwt.accessSecret,
         signOptions: {
           expiresIn: jwt.accessTokenTtl,
@@ -35,13 +36,13 @@ import { TokenModule } from './token/token.module';
     PassportModule,
     HashingModule,
     TokenModule,
+    RedisModule,
   ],
   controllers: [AuthController],
   providers: [
     // Strategies
-    JwtAccessStrategy,
-    JwtRefreshStrategy,
     LocalStrategy,
+    JwtAccessStrategy,
 
     // Guards
     JwtAccessGuard,
@@ -54,6 +55,7 @@ import { TokenModule } from './token/token.module';
 
     //Service
     AuthService,
+    RefreshTokenStore,
   ],
 })
 export class AuthModule {}

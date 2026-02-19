@@ -48,3 +48,13 @@ export class RegisterDto {
   @ApiPropertyOptional({ example: 'Doe' })
   lastName?: string;
 }
+
+export class RefreshDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    description: 'Refresh token returned from login',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  refreshToken: string;
+}

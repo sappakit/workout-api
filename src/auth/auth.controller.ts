@@ -16,8 +16,12 @@ import {
 } from './enums/auth.enum';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
-import { LoginDto, RegisterDto } from './dto/auth-body.dto';
-import { LoginResponseDto, UserResponseDto } from './dto/auth-response.dto';
+import { LoginDto, RefreshDto, RegisterDto } from './dto/auth-body.dto';
+import {
+  LoginResponseDto,
+  TokenPairResponseDto,
+  UserResponseDto,
+} from './dto/auth-response.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 import { ActiveUser } from './decorators/active-user.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -64,5 +68,18 @@ export class AuthController {
   @Serialize(UserResponseDto)
   async loadUser(@ActiveUser('sub') userId: number) {
     return this.authService.loadUser(userId);
+  }
+
+  @Auth(AuthType.PUBLIC)
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'Refresh access token and rotate refresh token',
+    type: TokenPairResponseDto,
+  })
+  @Serialize(TokenPairResponseDto)
+  async refresh(@Body() dto: RefreshDto) {
+    return this.authService.refresh(dto.refreshToken);
   }
 }

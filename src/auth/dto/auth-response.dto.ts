@@ -48,3 +48,13 @@ export class LoginResponseDto {
   @ApiProperty({ type: UserResponseDto })
   user: UserResponseDto;
 }
+
+export class TokenPairResponseDto {
+  @Expose()
+  @ApiProperty()
+  accessToken: string;
+
+  @Expose()
+  @ApiProperty()
+  refreshToken: string;
+}

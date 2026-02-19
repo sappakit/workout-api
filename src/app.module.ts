@@ -3,13 +3,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { getDBEnv } from 'utils/getDBEnv';
 import { AllEntities } from 'db/entities';
 import { AuthModule } from './auth/auth.module';
 import { envValidationSchema } from './config/env.validation';
 import { HashingModule } from './hashing/hashing.module';
 import { CommonModule } from './common/common.module';
 import { WorkoutModule } from './workout/workout.module';
+import { getDBEnv } from 'utils/getDBEnv.util';
 
 @Module({
   imports: [

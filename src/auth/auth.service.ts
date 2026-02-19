@@ -10,7 +10,13 @@ import { DataSource, Repository } from 'typeorm';
 import { HashingService } from 'src/hashing/services/hashing.service';
 import { TokenService } from './token/token.service';
 import { LoginDto, RegisterDto } from './dto/auth-body.dto';
-import { ActiveUserData, LocalValidatedUser } from './enums/auth.enum';
+import { LocalValidatedUser } from './enums/auth.enum';
+import { v4 as uuidv4 } from 'uuid';
+import { RefreshTokenStore } from './session/refresh-session.store';
+import { hashToken } from 'utils/hash.util';
+import { nowSec } from 'utils/time.util';
+import { RefreshSession } from './session/types/session.types';
+import { IssueTokenParams } from './token/types/token.types';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +24,7 @@ export class AuthService {
     private dataSource: DataSource,
     private readonly hashingService: HashingService,
     private readonly tokenService: TokenService,
+    private readonly refreshStore: RefreshTokenStore,
 
     // Repository
     @InjectRepository(User)
@@ -57,6 +64,28 @@ export class AuthService {
     );
 
     if (!isPasswordValid) return null;
+
+    return user;
+  }
+
+  async loadUser(userId: number) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: { role: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: {
+          code: true,
+          name: true,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
     return user;
   }
@@ -124,21 +153,14 @@ export class AuthService {
   }
 
   async login(user: LocalValidatedUser) {
-    // Generate tokens
-    const accessTokenPromise = this.tokenService.generateAccessToken({
-      sub: user.id,
+    const sid = uuidv4();
+
+    const { accessToken, refreshToken } = await this.issueAndStoreTokens({
+      sid,
+      userId: user.id,
       username: user.username,
       role: user.role.code,
     });
-
-    const refreshTokenPromise = this.tokenService.generateRefreshToken({
-      sub: user.id,
-    });
-
-    const [accessToken, refreshToken] = await Promise.all([
-      accessTokenPromise,
-      refreshTokenPromise,
-    ]);
 
     // Return response
     const response = {
@@ -158,25 +180,79 @@ export class AuthService {
     return response;
   }
 
-  async loadUser(userId: number) {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-      relations: { role: true },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: {
-          code: true,
-          name: true,
-        },
-      },
-    });
+  async logout(refreshToken: string) {
+    const payload = await this.tokenService.verifyRefreshToken(refreshToken);
+    await this.refreshStore.deleteSession(payload.sid);
+  }
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+  // Tokens logic
+  async issueAndStoreTokens(params: IssueTokenParams) {
+    const { sid, userId, username, role, prevSess } = params;
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.generateAccessToken({
+        sub: userId,
+        username,
+        role,
+        typ: 'access',
+      }),
+      this.tokenService.generateRefreshToken({
+        sub: userId,
+        sid,
+        typ: 'refresh',
+      }),
+    ]);
+
+    const tokenHash = hashToken(refreshToken);
+    const ttl = this.tokenService.refreshTtlSeconds();
+    const now = nowSec();
+
+    await this.refreshStore.saveSession(
+      sid,
+      {
+        userId,
+        tokenHash,
+        createdAt: prevSess?.createdAt ?? now,
+        rotatedAt: now,
+      },
+      ttl,
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  async refresh(refreshToken: string) {
+    const payload = await this.tokenService.verifyRefreshToken(refreshToken);
+
+    const session = await this.refreshStore.getSession(payload.sid);
+    if (!session) throw new UnauthorizedException('Session expired');
+
+    // reuse/mismatch detection
+    const incomingHash = hashToken(refreshToken);
+    if (session.tokenHash !== incomingHash) {
+      await this.refreshStore.deleteSession(payload.sid);
+      throw new UnauthorizedException('Refresh token reuse detected');
     }
 
-    return user;
+    // invariant check
+    if (payload.sub !== session.userId) {
+      await this.refreshStore.deleteSession(payload.sid);
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    // get user detail
+    const user = await this.loadUser(session.userId);
+
+    // rotate
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      await this.issueAndStoreTokens({
+        sid: payload.sid,
+        userId: user.id,
+        username: user.username,
+        role: user.role.code,
+        prevSess: session,
+      });
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 }
