@@ -15,8 +15,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { RefreshTokenStore } from './session/refresh-session.store';
 import { hashToken } from 'utils/hash.util';
 import { nowSec } from 'utils/time.util';
-import { RefreshSession } from './session/types/session.types';
 import { IssueTokenParams } from './token/types/token.types';
+import { DEFAULT_ROLE_CODE } from './auth.constants';
 
 @Injectable()
 export class AuthService {
@@ -98,7 +98,7 @@ export class AuthService {
     const firstName = dto.firstName?.trim();
     const lastName = dto.lastName?.trim();
 
-    await this.dataSource.transaction(async (manager) => {
+    const user = await this.dataSource.transaction(async (manager) => {
       // Check user existence
       const [usernameExists, emailExists] = await Promise.all([
         manager.exists(User, { where: { username } }),
@@ -118,7 +118,7 @@ export class AuthService {
 
       // Get default role
       const role = await manager.findOne(Role, {
-        where: { code: 'USER' },
+        where: { code: DEFAULT_ROLE_CODE },
       });
 
       if (!role) {
@@ -126,7 +126,7 @@ export class AuthService {
       }
 
       // Create user
-      const user = manager.create(User, {
+      const newUser = manager.create(User, {
         username,
         email,
         password_hash: passwordHash,
@@ -135,21 +135,33 @@ export class AuthService {
         updated_by: username,
       });
 
-      await manager.save(user);
+      await manager.save(newUser);
 
       // Create user profile
       const profile = manager.create(UserProfile, {
         first_name: firstName,
         last_name: lastName,
-        user,
+        user: newUser,
         created_by: username,
         updated_by: username,
       });
 
       await manager.save(profile);
+      return newUser;
     });
 
-    return { message: 'User created successfully' };
+    const payload = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: {
+        code: user.role.code,
+        name: user.role.name,
+      },
+    };
+
+    // Auto login after registration
+    return this.login(payload);
   }
 
   async login(user: LocalValidatedUser) {

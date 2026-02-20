@@ -37,9 +37,9 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description: 'User registered successfully',
-    type: SuccessMessageDto,
+    type: LoginResponseDto,
   })
-  @Serialize(SuccessMessageDto)
+  @Serialize(LoginResponseDto)
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }

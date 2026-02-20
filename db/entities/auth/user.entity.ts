@@ -19,8 +19,8 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 255, select: false })
   password_hash: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true, nullable: true })
-  email?: string;
+  @Column({ type: 'varchar', length: 100, unique: true })
+  email: string;
 
   @Column({ type: 'smallint', default: 0 })
   login_attempts: number;
