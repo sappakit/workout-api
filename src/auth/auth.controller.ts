@@ -39,6 +39,7 @@ export class AuthController {
     description: 'User registered successfully',
     type: SuccessMessageDto,
   })
+  @Serialize(SuccessMessageDto)
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -55,6 +56,19 @@ export class AuthController {
   @Serialize(LoginResponseDto)
   async login(@Body() _dto: LoginDto, @ActiveUser() user: LocalValidatedUser) {
     return this.authService.login(user);
+  }
+
+  @Auth(AuthType.PUBLIC)
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully logged out',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async logout(@Body() dto: RefreshDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 
   @Auth(AuthType.USER)

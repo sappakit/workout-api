@@ -183,6 +183,8 @@ export class AuthService {
   async logout(refreshToken: string) {
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
     await this.refreshStore.deleteSession(payload.sid);
+
+    return { message: 'Logged out successfully' };
   }
 
   // Tokens logic
