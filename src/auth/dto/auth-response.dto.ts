@@ -45,7 +45,7 @@ export class LoginResponseDto {
 
   @Expose()
   @Type(() => UserResponseDto)
-  @ApiProperty({ type: UserResponseDto })
+  @ApiProperty({ type: () => UserResponseDto })
   user: UserResponseDto;
 }
 

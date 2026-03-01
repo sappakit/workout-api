@@ -1,20 +1,8 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Auth } from './decorators/auth.decorator';
-import {
-  type ActiveUserData,
-  type LocalValidatedUser,
-  AuthType,
-} from './enums/auth.enum';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { type LocalValidatedUser, AuthType } from './enums/auth.enum';
+import { ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { LoginDto, RefreshDto, RegisterDto } from './dto/auth-body.dto';
 import {
@@ -33,7 +21,6 @@ export class AuthController {
 
   @Auth(AuthType.PUBLIC)
   @Post('register')
-  @HttpCode(HttpStatus.CREATED)
   @ApiResponse({
     status: 201,
     description: 'User registered successfully',
@@ -47,7 +34,6 @@ export class AuthController {
   @Auth(AuthType.PUBLIC)
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
     description: 'User logged in successfully',
@@ -60,7 +46,6 @@ export class AuthController {
 
   @Auth(AuthType.PUBLIC)
   @Post('logout')
-  @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
     description: 'Successfully logged out',
@@ -73,7 +58,6 @@ export class AuthController {
 
   @Auth(AuthType.USER)
   @Get('me')
-  @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
     description: 'Get the currently authenticated user',
@@ -86,7 +70,6 @@ export class AuthController {
 
   @Auth(AuthType.PUBLIC)
   @Post('refresh')
-  @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
     description: 'Refresh access token and rotate refresh token',

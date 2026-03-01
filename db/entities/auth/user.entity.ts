@@ -10,6 +10,7 @@ import { Role } from './role.entity';
 import { UserProfile } from './user-profile.entity';
 import { BaseEntity } from '../shared/base.entity';
 import { WorkoutSchedule } from '../workout';
+import { WorkoutWeeklyPlan } from '../workout/workout/workout-weekly-plan.entity';
 
 @Entity({ schema: 'auth', name: 'user' })
 export class User extends BaseEntity {
@@ -37,4 +38,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => WorkoutSchedule, (schedule) => schedule.user)
   workout_schedules: WorkoutSchedule[];
+
+  @OneToMany(() => WorkoutWeeklyPlan, (plan) => plan.user)
+  workout_weekly_plans: WorkoutWeeklyPlan[];
 }

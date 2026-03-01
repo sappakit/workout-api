@@ -1,6 +1,7 @@
 import { BaseEntity } from 'db/entities/shared';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { WorkoutExercise, WorkoutMuscle, WorkoutSchedule } from '.';
+import { WorkoutWeeklyPlan } from './workout-weekly-plan.entity';
 
 @Entity({ schema: 'workout', name: 'workouts' })
 export class Workout extends BaseEntity {
@@ -21,4 +22,7 @@ export class Workout extends BaseEntity {
 
   @OneToMany(() => WorkoutMuscle, (wm) => wm.workout)
   muscles: WorkoutMuscle[];
+
+  @OneToMany(() => WorkoutWeeklyPlan, (plan) => plan.workout)
+  weekly_plans: WorkoutWeeklyPlan[];
 }

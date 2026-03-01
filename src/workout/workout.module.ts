@@ -3,10 +3,29 @@ import { WorkoutService } from './workout.service';
 import { WorkoutController } from './workout.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'db/entities/auth';
+import {
+  Equipment,
+  Exercise,
+  Muscle,
+  Workout,
+  WorkoutSchedule,
+  WorkoutWeeklyPlan,
+} from 'db/entities/workout';
+import { PaginationService } from 'src/common/pagination/pagination.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      Exercise,
+      Muscle,
+      Equipment,
+      Workout,
+      WorkoutSchedule,
+      WorkoutWeeklyPlan,
+    ]),
+  ],
   controllers: [WorkoutController],
-  providers: [WorkoutService],
+  providers: [WorkoutService, PaginationService],
 })
 export class WorkoutModule {}

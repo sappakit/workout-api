@@ -14,6 +14,7 @@ import {
   WorkoutSession,
   WorkoutSessionExercise,
   WorkoutSet,
+  WorkoutWeeklyPlan,
 } from './entities/workout';
 
 export const AllEntities = [
@@ -38,6 +39,7 @@ export const AllEntities = [
   WorkoutSession,
   WorkoutSessionExercise,
   WorkoutSet,
+  WorkoutWeeklyPlan,
 
   Equipment,
   Muscle,
