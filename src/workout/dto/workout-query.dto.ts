@@ -6,7 +6,7 @@ export class GetWorkoutScheduleQueryDto {
   @IsDateString()
   @ApiPropertyOptional({
     description: 'Date in YYYY-MM-DD format',
-    example: '2026-05-04',
+    example: '2026-01-01',
   })
   date?: string;
 }

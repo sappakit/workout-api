@@ -58,16 +58,19 @@ export class WorkoutService {
       where: { id },
       relations: {
         workout_exercises: {
-          exercise: true,
+          exercise: {
+            user_stats: true,
+            muscles: { muscle: true },
+            equipment_links: {
+              equipment: true,
+            },
+          },
         },
-        muscles: {
-          muscle: true,
-        },
+        muscles: { muscle: true },
+        workout_focus_type: true,
       },
       order: {
-        workout_exercises: {
-          order_index: 'ASC',
-        },
+        workout_exercises: { order_index: 'ASC' },
       },
     });
 
@@ -75,6 +78,7 @@ export class WorkoutService {
       throw new NotFoundException('Workout not found');
     }
 
+    // console.log(results);
     return results;
   }
 
@@ -144,6 +148,7 @@ export class WorkoutService {
             },
           },
           muscles: { muscle: true },
+          workout_focus_type: true,
         },
       },
       order: {
@@ -153,7 +158,7 @@ export class WorkoutService {
       },
     });
 
-    console.log(schedule);
+    console.log(schedule)
     return schedule;
   }
 

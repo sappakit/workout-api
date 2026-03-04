@@ -1,5 +1,5 @@
 import { BaseEntity } from 'db/entities/shared';
-import { ExerciseType } from 'src/workout/enums/workout.enum';
+import { DifficultyLevel, ExerciseType } from 'src/workout/enums/workout.enum';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { WorkoutExercise, WorkoutSessionExercise } from '../workout';
 import { ExerciseEquipment, ExerciseMuscle, ExerciseUserStat } from '.';
@@ -9,11 +9,14 @@ export class Exercise extends BaseEntity {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string;
-
   @Column({ type: 'varchar', length: 30 })
   exercise_type: ExerciseType;
+
+  @Column({ type: 'varchar', length: 20 })
+  difficulty_level: DifficultyLevel;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
 
   @Column({ type: 'int', nullable: true })
   default_calories_burned?: number;

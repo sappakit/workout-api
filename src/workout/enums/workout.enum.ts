@@ -1,7 +1,13 @@
 export enum ExerciseType {
-  WEIGHT = 'weight',
+  STRENGTH = 'strength',
   CARDIO = 'cardio',
   CALISTHENICS = 'calisthenics',
+}
+
+export enum DifficultyLevel {
+  BEGINNER = 'beginner',
+  INTERMEDIATE = 'intermediate',
+  ADVANCED = 'advanced',
 }
 
 export enum WorkoutScheduleStatus {

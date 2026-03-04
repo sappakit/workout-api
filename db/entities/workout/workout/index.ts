@@ -7,3 +7,4 @@ export * from './workout-session-exercises.entity';
 export * from './workout-sessions.entity';
 export * from './workout-sets.entity';
 export * from './workout-weekly-plan.entity';
+export * from './workout-focus-types.entity';

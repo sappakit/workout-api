@@ -9,6 +9,7 @@ import {
   Workout,
   WorkoutExercise,
   WorkoutExerciseSet,
+  WorkoutFocusType,
   WorkoutMuscle,
   WorkoutSchedule,
   WorkoutSession,
@@ -40,6 +41,7 @@ export const AllEntities = [
   WorkoutSessionExercise,
   WorkoutSet,
   WorkoutWeeklyPlan,
+  WorkoutFocusType,
 
   Equipment,
   Muscle,

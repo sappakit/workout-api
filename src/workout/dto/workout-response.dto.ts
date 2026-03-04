@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
+  DifficultyLevel,
   EquipmentCategory,
   ExerciseType,
   WorkoutScheduleStatus,
@@ -68,6 +69,10 @@ export class ExerciseResponseDto {
   @Expose({ name: 'exercise_type' })
   @ApiProperty()
   exerciseType: ExerciseType;
+
+  @Expose({ name: 'difficulty_level' })
+  @ApiProperty()
+  difficultyLevel: DifficultyLevel;
 
   @Expose({ name: 'default_calories_burned' })
   @ApiProperty()
@@ -172,6 +177,20 @@ class WorkoutMuscleItemDto {
   muscle: MuscleResponseDto;
 }
 
+class workoutFocusTypeDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
+  name: string;
+}
+
 export class WorkoutResponseDto {
   @Expose()
   @ApiProperty()
@@ -198,6 +217,11 @@ export class WorkoutResponseDto {
   @Type(() => WorkoutMuscleItemDto)
   @ApiProperty({ type: () => [WorkoutMuscleItemDto] })
   muscles: WorkoutMuscleItemDto[];
+
+  @Expose({ name: 'workout_focus_type' })
+  @Type(() => workoutFocusTypeDto)
+  @ApiProperty({ type: () => workoutFocusTypeDto })
+  workoutFocusType: workoutFocusTypeDto;
 }
 
 export class WorkoutScheduleResponseDto {
