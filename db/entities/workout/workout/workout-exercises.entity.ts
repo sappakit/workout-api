@@ -22,7 +22,7 @@ export class WorkoutExercise {
   order_index: number;
 
   @Column({ type: 'int', nullable: true })
-  planned_sets?: number;
+  planned_sets?: number | null;
 
   @Column({
     type: 'varchar',
@@ -30,19 +30,19 @@ export class WorkoutExercise {
     nullable: true,
     comment: 'minimum-maximum',
   })
-  planned_reps_range?: string;
+  planned_reps_range?: string | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  planned_weight?: number;
+  planned_weight?: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  planned_rest_time?: number;
+  planned_rest_time?: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  planned_duration?: number;
+  planned_duration?: number | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  planned_distance?: number;
+  planned_distance?: number | null;
 
   @ManyToOne(() => Workout, (workout) => workout.workout_exercises, {
     nullable: false,

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 import {
   DifficultyLevel,
   EquipmentCategory,
@@ -7,7 +7,7 @@ import {
   WorkoutScheduleStatus,
 } from '../enums/workout.enum';
 
-export class MuscleResponseDto {
+export class MuscleDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -17,7 +17,7 @@ export class MuscleResponseDto {
   name: string;
 }
 
-class EquipmentDto {
+export class EquipmentDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -37,9 +37,9 @@ class ExerciseMuscleItemDto {
   id: number;
 
   @Expose()
-  @Type(() => MuscleResponseDto)
-  @ApiProperty({ type: () => MuscleResponseDto })
-  muscle: MuscleResponseDto;
+  @Type(() => MuscleDto)
+  @ApiProperty({ type: () => MuscleDto })
+  muscle: MuscleDto;
 }
 
 export class ExerciseEquipmentDto {
@@ -53,7 +53,7 @@ export class ExerciseEquipmentDto {
   equipment: EquipmentDto;
 }
 
-export class ExerciseResponseDto {
+export class ExerciseDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -113,20 +113,6 @@ export class ExerciseResponseDto {
   equipmentLinks: ExerciseEquipmentDto[];
 }
 
-export class EquipmentResponseDto {
-  @Expose()
-  @ApiProperty()
-  id: number;
-
-  @Expose()
-  @ApiProperty()
-  name: string;
-
-  @Expose()
-  @ApiProperty()
-  category: EquipmentCategory;
-}
-
 class WorkoutExerciseItemDto {
   @Expose()
   @ApiProperty()
@@ -145,6 +131,7 @@ class WorkoutExerciseItemDto {
   plannedRepsRange: string;
 
   @Expose({ name: 'planned_weight' })
+  @Transform(({ value }) => (value ? Number(value) : null)) // Convert to number
   @ApiProperty()
   plannedWeight: number;
 
@@ -161,9 +148,9 @@ class WorkoutExerciseItemDto {
   plannedDistance: number;
 
   @Expose()
-  @Type(() => ExerciseResponseDto)
-  @ApiProperty({ type: () => ExerciseResponseDto })
-  exercise: ExerciseResponseDto;
+  @Type(() => ExerciseDto)
+  @ApiProperty({ type: () => ExerciseDto })
+  exercise: ExerciseDto;
 }
 
 class WorkoutMuscleItemDto {
@@ -172,12 +159,12 @@ class WorkoutMuscleItemDto {
   id: number;
 
   @Expose()
-  @Type(() => MuscleResponseDto)
-  @ApiProperty({ type: () => MuscleResponseDto })
-  muscle: MuscleResponseDto;
+  @Type(() => MuscleDto)
+  @ApiProperty({ type: () => MuscleDto })
+  muscle: MuscleDto;
 }
 
-class workoutFocusTypeDto {
+export class WorkoutFocusTypeDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -191,7 +178,7 @@ class workoutFocusTypeDto {
   name: string;
 }
 
-export class WorkoutResponseDto {
+export class WorkoutDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -219,12 +206,12 @@ export class WorkoutResponseDto {
   muscles: WorkoutMuscleItemDto[];
 
   @Expose({ name: 'workout_focus_type' })
-  @Type(() => workoutFocusTypeDto)
-  @ApiProperty({ type: () => workoutFocusTypeDto })
-  workoutFocusType: workoutFocusTypeDto;
+  @Type(() => WorkoutFocusTypeDto)
+  @ApiProperty({ type: () => WorkoutFocusTypeDto })
+  workoutFocusType: WorkoutFocusTypeDto;
 }
 
-export class WorkoutScheduleResponseDto {
+export class WorkoutScheduleDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -238,7 +225,7 @@ export class WorkoutScheduleResponseDto {
   status: WorkoutScheduleStatus;
 
   @Expose()
-  @Type(() => WorkoutResponseDto)
-  @ApiProperty({ type: () => WorkoutResponseDto })
-  workout: WorkoutResponseDto;
+  @Type(() => WorkoutDto)
+  @ApiProperty({ type: () => WorkoutDto })
+  workout: WorkoutDto;
 }

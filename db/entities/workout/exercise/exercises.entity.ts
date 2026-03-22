@@ -18,6 +18,7 @@ export class Exercise extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  // strength: per set, cardio: per minutes
   @Column({ type: 'int', nullable: true })
   default_calories_burned?: number;
 
