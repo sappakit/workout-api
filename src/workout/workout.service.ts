@@ -367,6 +367,16 @@ export class WorkoutService {
     );
   }
 
+  async findOneExercise(id: number) {
+    const results = await this.exerciseRepo.findOne({ where: { id } });
+
+    if (!results) {
+      throw new NotFoundException('Workout not found');
+    }
+
+    return results;
+  }
+
   // Muscles
   async findAllMuscles(query: PagingDto) {
     const options: FindManyOptions<Muscle> = {

@@ -72,6 +72,19 @@ export class WorkoutController {
     return this.workoutService.findAllExercises(query);
   }
 
+  // Exercise detail
+  @Auth(AuthType.PUBLIC)
+  @Get('exercises/:id')
+  @ApiResponse({
+    status: 200,
+    description: 'Get exercise detail',
+    type: ExerciseDto,
+  })
+  @Serialize(ExerciseDto)
+  async findOneExercise(@Param('id', ParseIntPipe) id: number) {
+    return this.workoutService.findOneExercise(id);
+  }
+
   // Muscles
   @Auth(AuthType.PUBLIC)
   @Get('muscles')
