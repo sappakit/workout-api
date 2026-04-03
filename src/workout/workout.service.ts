@@ -23,10 +23,7 @@ import { getISOWeekday, normalizeToUTCDate } from 'utils/time.util';
 import { WorkoutScheduleStatus } from './enums/workout.enum';
 import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
-import {
-  UpdateWorkoutDto,
-  UpdateWorkoutExerciseDto,
-} from './dto/workout-body.dto';
+import { UpdateWorkoutDto } from './dto/workout-body.dto';
 
 @Injectable()
 export class WorkoutService {
@@ -35,14 +32,6 @@ export class WorkoutService {
     private paginationService: PaginationService,
 
     // Repository
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
-    @InjectRepository(Exercise)
-    private readonly exerciseRepo: Repository<Exercise>,
-    @InjectRepository(Muscle)
-    private readonly muscleRepo: Repository<Muscle>,
-    @InjectRepository(Equipment)
-    private readonly equipmentRepo: Repository<Equipment>,
     @InjectRepository(Workout)
     private readonly workoutRepo: Repository<Workout>,
     @InjectRepository(WorkoutSchedule)
@@ -273,7 +262,7 @@ export class WorkoutService {
     return { message: 'Workout updated successfully' };
   }
 
-  // Schedule
+  // Workout schedule
   async getScheduleByDate(
     user: ActiveUserData,
     query: GetWorkoutScheduleQueryDto,
@@ -348,59 +337,6 @@ export class WorkoutService {
     });
 
     return schedule;
-  }
-
-  // Exercises
-  async findAllExercises(query: PagingDto) {
-    const options: FindManyOptions<Exercise> = {
-      relations: {
-        muscles: { muscle: true },
-        equipment_links: { equipment: true },
-      },
-      order: { name: 'ASC' },
-    };
-
-    return this.paginationService.paginateRepository(
-      this.exerciseRepo,
-      options,
-      query,
-    );
-  }
-
-  async findOneExercise(id: number) {
-    const results = await this.exerciseRepo.findOne({ where: { id } });
-
-    if (!results) {
-      throw new NotFoundException('Workout not found');
-    }
-
-    return results;
-  }
-
-  // Muscles
-  async findAllMuscles(query: PagingDto) {
-    const options: FindManyOptions<Muscle> = {
-      order: { name: 'ASC' },
-    };
-
-    return this.paginationService.paginateRepository(
-      this.muscleRepo,
-      options,
-      query,
-    );
-  }
-
-  // Equipment
-  async findAllEquipment(query: PagingDto) {
-    const options: FindManyOptions<Equipment> = {
-      order: { name: 'ASC' },
-    };
-
-    return this.paginationService.paginateRepository(
-      this.equipmentRepo,
-      options,
-      query,
-    );
   }
 
   // Workout focus type

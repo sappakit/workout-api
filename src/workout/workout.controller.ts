@@ -16,9 +16,6 @@ import { PagingDto } from 'src/common/dto/request.dto';
 import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
 import {
-  EquipmentDto,
-  ExerciseDto,
-  MuscleDto,
   WorkoutDto,
   WorkoutFocusTypeDto,
   WorkoutScheduleDto,
@@ -26,7 +23,7 @@ import {
 import { UpdateWorkoutDto } from './dto/workout-body.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 
-@Controller('workout')
+@Controller('workouts')
 export class WorkoutController {
   constructor(private readonly workoutService: WorkoutService) {}
 
@@ -57,58 +54,6 @@ export class WorkoutController {
     @Query() query: GetWorkoutScheduleQueryDto,
   ) {
     return this.workoutService.getScheduleByDate(user, query);
-  }
-
-  // Exercises
-  @Auth(AuthType.PUBLIC)
-  @Get('exercises')
-  @ApiResponse({
-    status: 200,
-    description: 'Get all exercises',
-    type: ExerciseDto,
-  })
-  @Serialize(ExerciseDto)
-  async findAllExercises(@Query() query: PagingDto) {
-    return this.workoutService.findAllExercises(query);
-  }
-
-  // Exercise detail
-  @Auth(AuthType.PUBLIC)
-  @Get('exercises/:id')
-  @ApiResponse({
-    status: 200,
-    description: 'Get exercise detail',
-    type: ExerciseDto,
-  })
-  @Serialize(ExerciseDto)
-  async findOneExercise(@Param('id', ParseIntPipe) id: number) {
-    return this.workoutService.findOneExercise(id);
-  }
-
-  // Muscles
-  @Auth(AuthType.PUBLIC)
-  @Get('muscles')
-  @ApiResponse({
-    status: 200,
-    description: 'Get all muscles',
-    type: MuscleDto,
-  })
-  @Serialize(MuscleDto)
-  async findAllMuscles(@Query() query: PagingDto) {
-    return this.workoutService.findAllMuscles(query);
-  }
-
-  // Equipment
-  @Auth(AuthType.PUBLIC)
-  @Get('equipment')
-  @ApiResponse({
-    status: 200,
-    description: 'Get all equipment',
-    type: EquipmentDto,
-  })
-  @Serialize(EquipmentDto)
-  async findAllEquipment(@Query() query: PagingDto) {
-    return this.workoutService.findAllEquipment(query);
   }
 
   // Workout focus type

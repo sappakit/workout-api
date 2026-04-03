@@ -10,6 +10,7 @@ import { HashingModule } from './hashing/hashing.module';
 import { CommonModule } from './common/common.module';
 import { WorkoutModule } from './workout/workout.module';
 import { getDBEnv } from 'utils/getDBEnv.util';
+import { ExerciseModule } from './exercise/exercise.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { getDBEnv } from 'utils/getDBEnv.util';
     HashingModule,
     CommonModule,
     WorkoutModule,
+    ExerciseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
