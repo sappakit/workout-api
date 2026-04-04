@@ -11,8 +11,7 @@ import { Exercise } from '../exercise';
 import { Workout, WorkoutExerciseSet } from '.';
 
 @Index(['exercise'])
-@Index(['workout', 'order_index'])
-@Index(['workout', 'exercise'], { unique: true })
+@Index(['workout', 'order_index'], { unique: true })
 @Entity({ schema: 'workout', name: 'workout_exercises' })
 export class WorkoutExercise {
   @PrimaryGeneratedColumn()

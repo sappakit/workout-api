@@ -3,15 +3,7 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { WorkoutScheduleStatus } from '../enums/workout.enum';
 import { ExerciseDto, MuscleDto } from 'src/exercise/dto/exercise-response.dto';
 
-class WorkoutExerciseItemDto {
-  @Expose()
-  @ApiProperty()
-  id: number;
-
-  @Expose({ name: 'order_index' })
-  @ApiProperty()
-  orderIndex: number;
-
+class PlannedWorkoutExerciseConfigDto {
   @Expose({ name: 'planned_sets' })
   @ApiProperty()
   plannedSets: number;
@@ -21,7 +13,7 @@ class WorkoutExerciseItemDto {
   plannedRepsRange: string;
 
   @Expose({ name: 'planned_weight' })
-  @Transform(({ value }) => (value ? Number(value) : null)) // Convert to number
+  @Transform(({ value }) => (value != null ? Number(value) : null)) // Convert to number
   @ApiProperty()
   plannedWeight: number;
 
@@ -34,8 +26,19 @@ class WorkoutExerciseItemDto {
   plannedDuration: number;
 
   @Expose({ name: 'planned_distance' })
+  @Transform(({ value }) => (value != null ? Number(value) : null))
   @ApiProperty()
   plannedDistance: number;
+}
+
+export class WorkoutExerciseItemDto extends PlannedWorkoutExerciseConfigDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose({ name: 'order_index' })
+  @ApiProperty()
+  orderIndex: number;
 
   @Expose()
   @Type(() => ExerciseDto)
@@ -118,4 +121,71 @@ export class WorkoutScheduleDto {
   @Type(() => WorkoutDto)
   @ApiProperty({ type: () => WorkoutDto })
   workout: WorkoutDto;
+}
+
+class WorkoutSessionExerciseDto extends PlannedWorkoutExerciseConfigDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose({ name: 'order_index' })
+  @ApiProperty()
+  orderIndex: number;
+
+  @Expose({ name: 'started_at' })
+  @ApiProperty()
+  startedAt: Date;
+
+  @Expose({ name: 'completed_at' })
+  @ApiProperty()
+  completedAt: Date;
+
+  @Expose({ name: 'is_skipped' })
+  @ApiProperty()
+  isSkipped: boolean;
+
+  @Expose()
+  @Type(() => ExerciseDto)
+  @ApiProperty({ type: () => ExerciseDto })
+  exercise: ExerciseDto;
+}
+
+export class WorkoutSessionDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  status: string;
+
+  @Expose({ name: 'started_at' })
+  @ApiProperty()
+  startedAt: Date;
+
+  @Expose({ name: 'paused_at' })
+  @ApiProperty()
+  pausedAt: Date;
+
+  @Expose({ name: 'ended_at' })
+  @ApiProperty()
+  endedAt: Date;
+
+  @Expose({ name: 'total_duration' })
+  @ApiProperty()
+  totalDuration: number;
+
+  @Expose({ name: 'calories_burned' })
+  @ApiProperty()
+  caloriesBurned: number;
+
+  @Expose({ name: 'workout_schedule' })
+  @Type(() => WorkoutScheduleDto)
+  @ApiProperty({ type: () => WorkoutScheduleDto })
+  workoutSchedule: WorkoutScheduleDto;
+
+  @Expose({ name: 'session_exercises' })
+  @Type(() => WorkoutSessionExerciseDto)
+  @ApiProperty({ type: () => [WorkoutSessionExerciseDto] })
+  sessionExercises: WorkoutSessionExerciseDto[];
 }

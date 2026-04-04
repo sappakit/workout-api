@@ -15,12 +15,17 @@ import {
   WorkoutFocusType,
   WorkoutMuscle,
   WorkoutSchedule,
+  WorkoutSession,
+  WorkoutSessionExercise,
   WorkoutWeeklyPlan,
 } from 'db/entities/workout';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
 import { getISOWeekday, normalizeToUTCDate } from 'utils/time.util';
-import { WorkoutScheduleStatus } from './enums/workout.enum';
+import {
+  WorkoutScheduleStatus,
+  WorkoutSessionStatus,
+} from './enums/workout.enum';
 import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { UpdateWorkoutDto } from './dto/workout-body.dto';
@@ -40,6 +45,10 @@ export class WorkoutService {
     private readonly workoutWeeklyPlanRepo: Repository<WorkoutWeeklyPlan>,
     @InjectRepository(WorkoutFocusType)
     private readonly workoutFocusTypeRepo: Repository<WorkoutFocusType>,
+    @InjectRepository(WorkoutSession)
+    private readonly workoutSessionRepo: Repository<WorkoutSession>,
+    @InjectRepository(WorkoutExercise)
+    private readonly workoutExerciseRepo: Repository<WorkoutExercise>,
   ) {}
 
   // Workouts
@@ -350,5 +359,154 @@ export class WorkoutService {
       options,
       query,
     );
+  }
+
+  // Start session
+  async startTodayWorkoutSession(user: ActiveUserData) {
+    const today = new Date();
+
+    // Find today schedule
+    const schedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('No workout scheduled for today.');
+    }
+
+    // If an active or paused session already exists, return it
+    const existingSession = await this.workoutSessionRepo.findOne({
+      where: {
+        schedule: { id: schedule.id },
+        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
+      },
+      relations: {
+        schedule: {
+          workout: {
+            workout_focus_type: true,
+            muscles: { muscle: true },
+            workout_exercises: {
+              exercise: {
+                user_stats: true,
+                muscles: { muscle: true },
+                equipment_links: { equipment: true },
+              },
+            },
+          },
+        },
+        exercises: {
+          exercise: {
+            user_stats: true,
+            muscles: { muscle: true },
+            equipment_links: { equipment: true },
+          },
+          sets: true,
+        },
+      },
+      order: {
+        exercises: {
+          order_index: 'ASC',
+        },
+      },
+    });
+
+    if (existingSession) {
+      // TODO: remove
+      console.log('--- existingSession! ---');
+      return existingSession;
+    }
+
+    return await this.dataSource.transaction(async (manager) => {
+      const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
+      const workoutSessionRepo = manager.getRepository(WorkoutSession);
+      const workoutSessionExerciseRepo = manager.getRepository(
+        WorkoutSessionExercise,
+      );
+
+      // Load planned workout exercises in order
+      const plannedExercises = await workoutExerciseRepo.find({
+        where: {
+          workout: { id: schedule.workout.id },
+        },
+        relations: {
+          exercise: true,
+        },
+        order: {
+          order_index: 'ASC',
+        },
+      });
+
+      if (!plannedExercises.length) {
+        throw new NotFoundException('This workout has no exercises to start.');
+      }
+
+      // Create session
+      const session = workoutSessionRepo.create({
+        schedule: { id: schedule.id },
+        status: WorkoutSessionStatus.ACTIVE,
+        started_at: new Date(),
+        created_by: user.username,
+        updated_by: user.username,
+      });
+
+      const savedSession = await workoutSessionRepo.save(session);
+
+      // Copy workout plan rows into session exercises as a snapshot
+      const sessionExerciseValues = plannedExercises.map((item) => ({
+        workout_session_id: savedSession.id,
+        exercise_id: item.exercise.id,
+        order_index: item.order_index,
+
+        planned_sets: item.planned_sets,
+        planned_reps_range: item.planned_reps_range,
+        planned_weight: item.planned_weight,
+        planned_rest_time: item.planned_rest_time,
+        planned_duration: item.planned_duration,
+        planned_distance: item.planned_distance,
+
+        is_skipped: false,
+        started_at: null,
+        completed_at: null,
+      }));
+
+      await workoutSessionExerciseRepo.insert(sessionExerciseValues);
+
+      // Reload fully for response
+      const createdSession = await workoutSessionRepo.findOne({
+        where: {
+          id: savedSession.id,
+        },
+        relations: {
+          schedule: {
+            workout: {
+              workout_focus_type: true,
+              muscles: { muscle: true },
+              workout_exercises: {
+                exercise: {
+                  user_stats: true,
+                  muscles: { muscle: true },
+                  equipment_links: { equipment: true },
+                },
+              },
+            },
+          },
+          exercises: {
+            exercise: {
+              user_stats: true,
+              muscles: { muscle: true },
+              equipment_links: { equipment: true },
+            },
+            sets: true,
+          },
+        },
+        order: {
+          exercises: {
+            order_index: 'ASC',
+          },
+        },
+      });
+
+      return createdSession;
+    });
   }
 }

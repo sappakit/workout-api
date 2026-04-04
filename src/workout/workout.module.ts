@@ -4,8 +4,10 @@ import { WorkoutController } from './workout.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Workout,
+  WorkoutExercise,
   WorkoutFocusType,
   WorkoutSchedule,
+  WorkoutSession,
   WorkoutWeeklyPlan,
 } from 'db/entities/workout';
 import { PaginationService } from 'src/common/pagination/pagination.service';
@@ -17,6 +19,8 @@ import { PaginationService } from 'src/common/pagination/pagination.service';
       WorkoutSchedule,
       WorkoutWeeklyPlan,
       WorkoutFocusType,
+      WorkoutSession,
+      WorkoutExercise,
     ]),
   ],
   controllers: [WorkoutController],

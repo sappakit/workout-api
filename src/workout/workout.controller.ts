@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
@@ -19,6 +20,7 @@ import {
   WorkoutDto,
   WorkoutFocusTypeDto,
   WorkoutScheduleDto,
+  WorkoutSessionDto,
 } from './dto/workout-response.dto';
 import { UpdateWorkoutDto } from './dto/workout-body.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
@@ -67,6 +69,19 @@ export class WorkoutController {
   @Serialize(WorkoutFocusTypeDto)
   async findAllWorkoutFocusTypes(@Query() query: PagingDto) {
     return this.workoutService.findAllWorkoutFocusTypes(query);
+  }
+
+  // Start session
+  @Auth(AuthType.USER)
+  @Post('sessions/start')
+  @ApiResponse({
+    status: 200,
+    description: 'Start or resume today workout session',
+    type: WorkoutSessionDto,
+  })
+  @Serialize(WorkoutSessionDto)
+  async startTodayWorkout(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.startTodayWorkoutSession(user);
   }
 
   // Workout
