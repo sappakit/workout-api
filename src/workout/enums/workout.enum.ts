@@ -29,3 +29,9 @@ export enum EquipmentCategory {
   BODYWEIGHT = 'bodyweight',
   ACCESSORY = 'accessory',
 }
+
+export enum WorkoutCurrentMode {
+  IN_PROGRESS = 'in_progress',
+  SCHEDULED = 'scheduled',
+  REST_DAY = 'rest_day',
+}

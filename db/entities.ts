@@ -14,7 +14,7 @@ import {
   WorkoutSchedule,
   WorkoutSession,
   WorkoutSessionExercise,
-  WorkoutSet,
+  WorkoutSessionExerciseSet,
   WorkoutWeeklyPlan,
 } from './entities/workout';
 
@@ -39,7 +39,7 @@ export const AllEntities = [
   WorkoutSchedule,
   WorkoutSession,
   WorkoutSessionExercise,
-  WorkoutSet,
+  WorkoutSessionExerciseSet,
   WorkoutWeeklyPlan,
   WorkoutFocusType,
 

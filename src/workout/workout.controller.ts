@@ -17,6 +17,7 @@ import { PagingDto } from 'src/common/dto/request.dto';
 import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
 import {
+  WorkoutCurrentDto,
   WorkoutDto,
   WorkoutFocusTypeDto,
   WorkoutScheduleDto,
@@ -42,6 +43,19 @@ export class WorkoutController {
     return this.workoutService.findAllWorkouts(query);
   }
 
+  // Workout focus type
+  @Auth(AuthType.PUBLIC)
+  @Get('types')
+  @ApiResponse({
+    status: 200,
+    description: 'Get all workout focus types',
+    type: WorkoutFocusTypeDto,
+  })
+  @Serialize(WorkoutFocusTypeDto)
+  async findAllWorkoutFocusTypes(@Query() query: PagingDto) {
+    return this.workoutService.findAllWorkoutFocusTypes(query);
+  }
+
   // Schedule
   @Auth(AuthType.USER)
   @Get('schedule')
@@ -58,17 +72,18 @@ export class WorkoutController {
     return this.workoutService.getScheduleByDate(user, query);
   }
 
-  // Workout focus type
-  @Auth(AuthType.PUBLIC)
-  @Get('types')
+  // Get current workout state for today
+  // (in-progress session, scheduled workout, or rest day)
+  @Auth(AuthType.USER)
+  @Get('current')
   @ApiResponse({
     status: 200,
-    description: 'Get all workout focus types',
-    type: WorkoutFocusTypeDto,
+    description: 'Get current workout state',
+    type: WorkoutCurrentDto,
   })
-  @Serialize(WorkoutFocusTypeDto)
-  async findAllWorkoutFocusTypes(@Query() query: PagingDto) {
-    return this.workoutService.findAllWorkoutFocusTypes(query);
+  @Serialize(WorkoutCurrentDto)
+  async getCurrentWorkout(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getCurrentWorkout(user);
   }
 
   // Start session
@@ -84,7 +99,7 @@ export class WorkoutController {
     return this.workoutService.startTodayWorkoutSession(user);
   }
 
-  // Workout
+  // Workout detail
   @Auth(AuthType.PUBLIC)
   @Get(':id')
   @ApiResponse({

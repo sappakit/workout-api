@@ -23,6 +23,7 @@ import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
 import { getISOWeekday, normalizeToUTCDate } from 'utils/time.util';
 import {
+  WorkoutCurrentMode,
   WorkoutScheduleStatus,
   WorkoutSessionStatus,
 } from './enums/workout.enum';
@@ -271,6 +272,19 @@ export class WorkoutService {
     return { message: 'Workout updated successfully' };
   }
 
+  // Workout focus type
+  async findAllWorkoutFocusTypes(query: PagingDto) {
+    const options: FindManyOptions<WorkoutFocusType> = {
+      order: { name: 'ASC' },
+    };
+
+    return this.paginationService.paginateRepository(
+      this.workoutFocusTypeRepo,
+      options,
+      query,
+    );
+  }
+
   // Workout schedule
   async getScheduleByDate(
     user: ActiveUserData,
@@ -291,33 +305,7 @@ export class WorkoutService {
 
     // If not exists, add schedule
     if (!exists) {
-      const dayOfWeek = getISOWeekday(normalizedDate); // 1–7
-
-      const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
-        where: {
-          user: { id: user.sub },
-          day_of_week: dayOfWeek,
-        },
-        relations: {
-          workout: true,
-        },
-      });
-
-      if (!weeklyPlan) {
-        return null; // Rest day
-      }
-
-      // create schedule
-      const newSchedule = this.workoutScheduleRepo.create({
-        user: { id: user.sub },
-        workout: { id: weeklyPlan.workout.id },
-        scheduled_date: normalizedDate,
-        status: WorkoutScheduleStatus.PLANNED,
-        created_by: user.username,
-        updated_by: user.username,
-      });
-
-      await this.workoutScheduleRepo.save(newSchedule);
+      await this.createScheduleForDate(user, normalizedDate);
     }
 
     const schedule = await this.workoutScheduleRepo.findOne({
@@ -348,17 +336,90 @@ export class WorkoutService {
     return schedule;
   }
 
-  // Workout focus type
-  async findAllWorkoutFocusTypes(query: PagingDto) {
-    const options: FindManyOptions<WorkoutFocusType> = {
-      order: { name: 'ASC' },
-    };
+  // Create a new schedule for date
+  private async createScheduleForDate(
+    user: ActiveUserData,
+    normalizedDate: Date,
+  ) {
+    const dayOfWeek = getISOWeekday(normalizedDate); // 1–7
 
-    return this.paginationService.paginateRepository(
-      this.workoutFocusTypeRepo,
-      options,
-      query,
-    );
+    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        day_of_week: dayOfWeek,
+      },
+      relations: {
+        workout: true,
+      },
+    });
+
+    if (!weeklyPlan) {
+      return null; // Rest day
+    }
+
+    // create schedule
+    const newSchedule = this.workoutScheduleRepo.create({
+      user: { id: user.sub },
+      workout: { id: weeklyPlan.workout.id },
+      scheduled_date: normalizedDate,
+      status: WorkoutScheduleStatus.PLANNED,
+      created_by: user.username,
+      updated_by: user.username,
+    });
+
+    await this.workoutScheduleRepo.save(newSchedule);
+  }
+
+  // Get current workout state for today
+  async getCurrentWorkout(user: ActiveUserData) {
+    const today = new Date();
+    const normalizedDate = normalizeToUTCDate(today);
+
+    // find schedule
+    const schedule = await this.workoutScheduleRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        scheduled_date: normalizedDate,
+      },
+    });
+
+    if (!schedule) {
+      return {
+        mode: WorkoutCurrentMode.REST_DAY,
+        session: null,
+        schedule: null,
+      };
+    }
+
+    const session = await this.workoutSessionRepo.findOne({
+      where: {
+        schedule: { id: schedule.id },
+        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
+      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: this.getWorkoutSessionDetailOrder(),
+    });
+
+    console.log('session:', session);
+
+    if (session) {
+      return {
+        mode: WorkoutCurrentMode.IN_PROGRESS,
+        session,
+        schedule: null,
+      };
+    }
+
+    // load full schedule with relations
+    const fullSchedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
+    });
+
+    return {
+      mode: WorkoutCurrentMode.SCHEDULED,
+      session: null,
+      schedule: fullSchedule,
+    };
   }
 
   // Start session
@@ -380,42 +441,22 @@ export class WorkoutService {
         schedule: { id: schedule.id },
         status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
       },
-      relations: {
-        schedule: {
-          workout: {
-            workout_focus_type: true,
-            muscles: { muscle: true },
-            workout_exercises: {
-              exercise: {
-                user_stats: true,
-                muscles: { muscle: true },
-                equipment_links: { equipment: true },
-              },
-            },
-          },
-        },
-        exercises: {
-          exercise: {
-            user_stats: true,
-            muscles: { muscle: true },
-            equipment_links: { equipment: true },
-          },
-          sets: true,
-        },
-      },
-      order: {
-        exercises: {
-          order_index: 'ASC',
-        },
-      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: this.getWorkoutSessionDetailOrder(),
     });
 
     if (existingSession) {
-      // TODO: remove
-      console.log('--- existingSession! ---');
       return existingSession;
     }
 
+    return this.createSessionFromSchedule(schedule, user);
+  }
+
+  // Create a new session
+  private async createSessionFromSchedule(
+    schedule: WorkoutSchedule,
+    user: ActiveUserData,
+  ) {
     return await this.dataSource.transaction(async (manager) => {
       const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
       const workoutSessionRepo = manager.getRepository(WorkoutSession);
@@ -453,8 +494,8 @@ export class WorkoutService {
 
       // Copy workout plan rows into session exercises as a snapshot
       const sessionExerciseValues = plannedExercises.map((item) => ({
-        workout_session_id: savedSession.id,
-        exercise_id: item.exercise.id,
+        session: { id: savedSession.id },
+        exercise: { id: item.exercise.id },
         order_index: item.order_index,
 
         planned_sets: item.planned_sets,
@@ -476,37 +517,35 @@ export class WorkoutService {
         where: {
           id: savedSession.id,
         },
-        relations: {
-          schedule: {
-            workout: {
-              workout_focus_type: true,
-              muscles: { muscle: true },
-              workout_exercises: {
-                exercise: {
-                  user_stats: true,
-                  muscles: { muscle: true },
-                  equipment_links: { equipment: true },
-                },
-              },
-            },
-          },
-          exercises: {
-            exercise: {
-              user_stats: true,
-              muscles: { muscle: true },
-              equipment_links: { equipment: true },
-            },
-            sets: true,
-          },
-        },
-        order: {
-          exercises: {
-            order_index: 'ASC',
-          },
-        },
+        relations: this.getWorkoutSessionDetailRelations(),
+        order: this.getWorkoutSessionDetailOrder(),
       });
 
       return createdSession;
     });
+  }
+
+  private getWorkoutSessionDetailRelations() {
+    return {
+      schedule: {
+        workout: {
+          workout_focus_type: true,
+        },
+      },
+      exercises: {
+        exercise: {
+          user_stats: true,
+        },
+        sets: true,
+      },
+    } as const;
+  }
+
+  private getWorkoutSessionDetailOrder() {
+    return {
+      exercises: {
+        order_index: 'ASC' as const,
+      },
+    };
   }
 }

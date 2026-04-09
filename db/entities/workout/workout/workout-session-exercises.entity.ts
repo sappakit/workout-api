@@ -7,7 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { WorkoutSession, WorkoutSet } from '.';
+import { WorkoutSession, WorkoutSessionExerciseSet } from '.';
 import { Exercise } from '../exercise';
 
 @Index(['exercise'])
@@ -64,6 +64,6 @@ export class WorkoutSessionExercise {
   @JoinColumn({ name: 'exercise_id' })
   exercise: Exercise;
 
-  @OneToMany(() => WorkoutSet, (set) => set.session_exercise)
-  sets: WorkoutSet[];
+  @OneToMany(() => WorkoutSessionExerciseSet, (set) => set.session_exercise)
+  sets: WorkoutSessionExerciseSet[];
 }

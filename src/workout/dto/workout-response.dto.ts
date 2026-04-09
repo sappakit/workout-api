@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
-import { WorkoutScheduleStatus } from '../enums/workout.enum';
+import {
+  WorkoutCurrentMode,
+  WorkoutScheduleStatus,
+} from '../enums/workout.enum';
 import { ExerciseDto, MuscleDto } from 'src/exercise/dto/exercise-response.dto';
 
 class PlannedWorkoutExerciseConfigDto {
@@ -123,6 +126,40 @@ export class WorkoutScheduleDto {
   workout: WorkoutDto;
 }
 
+class WorkoutSessionExerciseSetDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose({ name: 'set_number' })
+  @ApiProperty()
+  setNumber: number;
+
+  @Expose()
+  @ApiProperty()
+  reps: number;
+
+  @Expose()
+  @ApiProperty()
+  weight: number;
+
+  @Expose()
+  @ApiProperty()
+  distance: number;
+
+  @Expose()
+  @ApiProperty()
+  duration: number;
+
+  @Expose({ name: 'performed_at' })
+  @ApiProperty()
+  performedAt: Date;
+
+  @Expose({ name: 'completed_at' })
+  @ApiProperty()
+  completedAt: Date;
+}
+
 class WorkoutSessionExerciseDto extends PlannedWorkoutExerciseConfigDto {
   @Expose()
   @ApiProperty()
@@ -148,6 +185,11 @@ class WorkoutSessionExerciseDto extends PlannedWorkoutExerciseConfigDto {
   @Type(() => ExerciseDto)
   @ApiProperty({ type: () => ExerciseDto })
   exercise: ExerciseDto;
+
+  @Expose()
+  @Type(() => WorkoutSessionExerciseSetDto)
+  @ApiProperty({ type: () => [WorkoutSessionExerciseSetDto] })
+  sets: WorkoutSessionExerciseSetDto[];
 }
 
 export class WorkoutSessionDto {
@@ -179,13 +221,29 @@ export class WorkoutSessionDto {
   @ApiProperty()
   caloriesBurned: number;
 
-  @Expose({ name: 'workout_schedule' })
+  @Expose({ name: 'schedule' })
   @Type(() => WorkoutScheduleDto)
   @ApiProperty({ type: () => WorkoutScheduleDto })
   workoutSchedule: WorkoutScheduleDto;
 
-  @Expose({ name: 'session_exercises' })
+  @Expose({ name: 'exercises' })
   @Type(() => WorkoutSessionExerciseDto)
   @ApiProperty({ type: () => [WorkoutSessionExerciseDto] })
   sessionExercises: WorkoutSessionExerciseDto[];
+}
+
+export class WorkoutCurrentDto {
+  @Expose()
+  @ApiProperty({ enum: WorkoutCurrentMode })
+  mode: WorkoutCurrentMode;
+
+  @Expose()
+  @Type(() => WorkoutSessionDto)
+  @ApiProperty({ type: () => WorkoutSessionDto })
+  session: WorkoutSessionDto | null;
+
+  @Expose()
+  @Type(() => WorkoutScheduleDto)
+  @ApiProperty({ type: () => WorkoutScheduleDto })
+  schedule: WorkoutScheduleDto | null;
 }

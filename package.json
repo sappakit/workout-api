@@ -21,7 +21,8 @@
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "pnpm typeorm migration:generate db/migrations/new_migration -d db/data-source.ts",
     "migration:run": "pnpm typeorm migration:run -d db/data-source.ts",
-    "migration:revert": "pnpm typeorm migration:revert -d db/data-source.ts"
+    "migration:revert": "pnpm typeorm migration:revert -d db/data-source.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

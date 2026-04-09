@@ -9,8 +9,8 @@ import {
 import { WorkoutSessionExercise } from '.';
 
 @Index(['session_exercise', 'set_number'], { unique: true })
-@Entity({ schema: 'workout', name: 'workout_sets' })
-export class WorkoutSet {
+@Entity({ schema: 'workout', name: 'workout_session_exercise_sets' })
+export class WorkoutSessionExerciseSet {
   @PrimaryGeneratedColumn()
   id: number;
 
