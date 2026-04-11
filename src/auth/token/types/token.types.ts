@@ -7,6 +7,13 @@ export type AccessTokenPayload = {
   typ: 'access';
 };
 
+export type DecodedAccessTokenPayload = AccessTokenPayload & {
+  iat: number;
+  exp: number;
+  aud: string;
+  iss: string;
+};
+
 export type RefreshTokenPayload = {
   sub: number; // userId
   sid: string; // session id

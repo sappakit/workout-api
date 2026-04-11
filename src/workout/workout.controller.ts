@@ -99,6 +99,19 @@ export class WorkoutController {
     return this.workoutService.startTodayWorkoutSession(user);
   }
 
+  // Cancel session
+  @Auth(AuthType.USER)
+  @Post('sessions/cancel')
+  @ApiResponse({
+    status: 200,
+    description: 'Cancel today workout session',
+    type: SuccessMessageDto,
+  })
+  @Serialize(WorkoutSessionDto)
+  async cancelTodayWorkout(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.cancelTodayWorkoutSession(user);
+  }
+
   // Workout detail
   @Auth(AuthType.PUBLIC)
   @Get(':id')

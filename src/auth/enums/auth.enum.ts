@@ -6,8 +6,8 @@ export enum AuthType {
 
 export type ActiveUserData = {
   sub: number; // user id
-  username?: string;
-  role?: string;
+  username: string;
+  role: string;
   permissions?: string[];
   tokenType?: 'access' | 'refresh' | 'info';
 };
