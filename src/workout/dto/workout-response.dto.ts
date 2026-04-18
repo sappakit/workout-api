@@ -226,7 +226,7 @@ export class WorkoutSessionDto {
   @ApiProperty({ type: () => WorkoutScheduleDto })
   workoutSchedule: WorkoutScheduleDto;
 
-  @Expose({ name: 'exercises' })
+  @Expose({ name: 'session_exercises' })
   @Type(() => WorkoutSessionExerciseDto)
   @ApiProperty({ type: () => [WorkoutSessionExerciseDto] })
   sessionExercises: WorkoutSessionExerciseDto[];

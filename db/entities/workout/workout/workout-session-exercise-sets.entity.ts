@@ -18,22 +18,22 @@ export class WorkoutSessionExerciseSet {
   set_number: number;
 
   @Column({ type: 'int', nullable: true })
-  reps?: number;
+  reps?: number | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  weight?: number;
+  weight?: number | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  distance?: number;
+  distance?: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  duration?: number;
+  duration?: number | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  performed_at?: Date;
+  performed_at?: Date | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  completed_at?: Date;
+  completed_at?: Date | null;
 
   @ManyToOne(() => WorkoutSessionExercise, (se) => se.sets, { nullable: false })
   @JoinColumn({ name: 'session_exercise_id' })

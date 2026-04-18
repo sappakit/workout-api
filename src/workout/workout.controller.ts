@@ -23,7 +23,10 @@ import {
   WorkoutScheduleDto,
   WorkoutSessionDto,
 } from './dto/workout-response.dto';
-import { UpdateWorkoutDto } from './dto/workout-body.dto';
+import {
+  FinishWorkoutSessionDto,
+  UpdateWorkoutDto,
+} from './dto/workout-body.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 
 @Controller('workouts')
@@ -95,7 +98,7 @@ export class WorkoutController {
     type: WorkoutSessionDto,
   })
   @Serialize(WorkoutSessionDto)
-  async startTodayWorkout(@ActiveUser() user: ActiveUserData) {
+  async startTodayWorkoutSession(@ActiveUser() user: ActiveUserData) {
     return this.workoutService.startTodayWorkoutSession(user);
   }
 
@@ -108,8 +111,24 @@ export class WorkoutController {
     type: SuccessMessageDto,
   })
   @Serialize(WorkoutSessionDto)
-  async cancelTodayWorkout(@ActiveUser() user: ActiveUserData) {
+  async cancelTodayWorkoutSession(@ActiveUser() user: ActiveUserData) {
     return this.workoutService.cancelTodayWorkoutSession(user);
+  }
+
+  // Finish workout session
+  @Auth(AuthType.PUBLIC)
+  @Patch('sessions/:id/finish')
+  @ApiResponse({
+    status: 200,
+    description: 'Finish workout session',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async finishWorkoutSession(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: FinishWorkoutSessionDto,
+  ) {
+    return this.workoutService.finishWorkoutSession(id, body);
   }
 
   // Workout detail

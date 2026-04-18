@@ -8,6 +8,7 @@ import {
   WorkoutFocusType,
   WorkoutSchedule,
   WorkoutSession,
+  WorkoutSessionExercise,
   WorkoutWeeklyPlan,
 } from 'db/entities/workout';
 import { PaginationService } from 'src/common/pagination/pagination.service';
@@ -20,7 +21,7 @@ import { PaginationService } from 'src/common/pagination/pagination.service';
       WorkoutWeeklyPlan,
       WorkoutFocusType,
       WorkoutSession,
-      WorkoutExercise,
+      WorkoutSessionExercise,
     ]),
   ],
   controllers: [WorkoutController],

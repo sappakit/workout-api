@@ -52,7 +52,7 @@ export class WorkoutSessionExercise {
   @Column({ type: 'boolean', default: false })
   is_skipped: boolean;
 
-  @ManyToOne(() => WorkoutSession, (session) => session.exercises, {
+  @ManyToOne(() => WorkoutSession, (session) => session.session_exercises, {
     nullable: false,
   })
   @JoinColumn({ name: 'workout_session_id' })
