@@ -221,10 +221,10 @@ export class WorkoutSessionDto {
   @ApiProperty()
   caloriesBurned: number;
 
-  @Expose({ name: 'schedule' })
-  @Type(() => WorkoutScheduleDto)
-  @ApiProperty({ type: () => WorkoutScheduleDto })
-  workoutSchedule: WorkoutScheduleDto;
+  @Expose({ name: 'workout' })
+  @Type(() => WorkoutDto)
+  @ApiProperty({ type: () => WorkoutDto })
+  workout: WorkoutDto;
 
   @Expose({ name: 'session_exercises' })
   @Type(() => WorkoutSessionExerciseDto)

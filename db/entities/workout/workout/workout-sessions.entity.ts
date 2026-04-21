@@ -8,10 +8,10 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import { WorkoutSchedule, WorkoutSessionExercise } from '.';
+import { Workout, WorkoutSessionExercise } from '.';
+import { User } from 'db/entities/auth';
 
-@Index(['schedule'])
-@Index(['status'])
+@Index(['user', 'status'])
 @Entity({ schema: 'workout', name: 'workout_sessions' })
 export class WorkoutSession extends BaseEntity {
   @Column({ type: 'varchar', length: 20 })
@@ -32,9 +32,13 @@ export class WorkoutSession extends BaseEntity {
   @Column({ type: 'int', nullable: true })
   calories_burned?: number | null;
 
-  @ManyToOne(() => WorkoutSchedule, (schedule) => schedule.sessions)
-  @JoinColumn({ name: 'workout_schedule_id' })
-  schedule?: WorkoutSchedule;
+  @ManyToOne(() => User, (user) => user.sessions, { nullable: false })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @ManyToOne(() => Workout, (workout) => workout.sessions, { nullable: false })
+  @JoinColumn({ name: 'workout_id' })
+  workout: Workout;
 
   @OneToMany(() => WorkoutSessionExercise, (wse) => wse.session)
   session_exercises: WorkoutSessionExercise[];

@@ -1,14 +1,7 @@
 import { User } from 'db/entities/auth';
 import { WorkoutScheduleStatus } from 'src/workout/enums/workout.enum';
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
-import { Workout, WorkoutSession } from '.';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Workout } from '.';
 import { BaseEntity } from 'db/entities/shared';
 
 @Index(['user', 'status'])
@@ -21,14 +14,11 @@ export class WorkoutSchedule extends BaseEntity {
   @Column({ type: 'varchar', length: 20 })
   status: WorkoutScheduleStatus;
 
-  @ManyToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, (user) => user.schedules, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Workout, (workout) => workout.schedules, { nullable: false })
   @JoinColumn({ name: 'workout_id' })
   workout: Workout;
-
-  @OneToMany(() => WorkoutSession, (session) => session.schedule)
-  sessions: WorkoutSession[];
 }

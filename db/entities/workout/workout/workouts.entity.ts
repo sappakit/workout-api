@@ -5,6 +5,7 @@ import {
   WorkoutFocusType,
   WorkoutMuscle,
   WorkoutSchedule,
+  WorkoutSession,
 } from '.';
 import { WorkoutWeeklyPlan } from './workout-weekly-plan.entity';
 
@@ -36,4 +37,7 @@ export class Workout extends BaseEntity {
   })
   @JoinColumn({ name: 'workout_focus_type_id' })
   workout_focus_type: WorkoutFocusType;
+
+  @OneToMany(() => WorkoutSession, (session) => session.workout)
+  sessions: WorkoutSession[];
 }

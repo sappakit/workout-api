@@ -89,32 +89,6 @@ export class WorkoutController {
     return this.workoutService.getCurrentWorkout(user);
   }
 
-  // Start session
-  @Auth(AuthType.USER)
-  @Post('sessions/start')
-  @ApiResponse({
-    status: 200,
-    description: 'Start or resume today workout session',
-    type: WorkoutSessionDto,
-  })
-  @Serialize(WorkoutSessionDto)
-  async startTodayWorkoutSession(@ActiveUser() user: ActiveUserData) {
-    return this.workoutService.startTodayWorkoutSession(user);
-  }
-
-  // Cancel session
-  @Auth(AuthType.USER)
-  @Post('sessions/cancel')
-  @ApiResponse({
-    status: 200,
-    description: 'Cancel today workout session',
-    type: SuccessMessageDto,
-  })
-  @Serialize(WorkoutSessionDto)
-  async cancelTodayWorkoutSession(@ActiveUser() user: ActiveUserData) {
-    return this.workoutService.cancelTodayWorkoutSession(user);
-  }
-
   // Finish workout session
   @Auth(AuthType.PUBLIC)
   @Patch('sessions/:id/finish')
@@ -129,6 +103,38 @@ export class WorkoutController {
     @Body() body: FinishWorkoutSessionDto,
   ) {
     return this.workoutService.finishWorkoutSession(id, body);
+  }
+
+  // Cancel session
+  @Auth(AuthType.USER)
+  @Post('sessions/:id/cancel')
+  @ApiResponse({
+    status: 200,
+    description: 'Cancel workout session',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async cancelWorkoutSession(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.workoutService.cancelWorkoutSession(id, user);
+  }
+
+  // Start or resume a workout session by workout id
+  @Auth(AuthType.USER)
+  @Post(':workoutId/sessions/start')
+  @ApiResponse({
+    status: 200,
+    description: 'Start or resume a workout session',
+    type: WorkoutSessionDto,
+  })
+  @Serialize(WorkoutSessionDto)
+  async startWorkoutSession(
+    @Param('workoutId', ParseIntPipe) workoutId: number,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.workoutService.startWorkoutSession(workoutId, user);
   }
 
   // Workout detail

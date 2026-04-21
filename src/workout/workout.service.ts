@@ -378,10 +378,30 @@ export class WorkoutService {
 
   // Get current workout state for today
   async getCurrentWorkout(user: ActiveUserData) {
+    // use unfinished session first
+    const currentSession = await this.workoutSessionRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
+      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: {
+        started_at: 'DESC',
+      },
+    });
+
+    if (currentSession) {
+      return {
+        mode: WorkoutCurrentMode.IN_PROGRESS,
+        session: currentSession,
+        schedule: null,
+      };
+    }
+
+    // use today schedule
     const today = new Date();
     const normalizedDate = normalizeToUTCDate(today);
 
-    // find schedule
     const schedule = await this.workoutScheduleRepo.findOne({
       where: {
         user: { id: user.sub },
@@ -389,6 +409,7 @@ export class WorkoutService {
       },
     });
 
+    // no schedule means rest day
     if (!schedule) {
       return {
         mode: WorkoutCurrentMode.REST_DAY,
@@ -397,24 +418,6 @@ export class WorkoutService {
       };
     }
 
-    const session = await this.workoutSessionRepo.findOne({
-      where: {
-        schedule: { id: schedule.id },
-        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
-      },
-      relations: this.getWorkoutSessionDetailRelations(),
-      order: this.getWorkoutSessionDetailOrder(),
-    });
-
-    if (session) {
-      return {
-        mode: WorkoutCurrentMode.IN_PROGRESS,
-        session,
-        schedule: null,
-      };
-    }
-
-    // load full schedule with relations
     const fullSchedule = await this.getScheduleByDate(user, {
       date: today.toISOString(),
     });
@@ -427,41 +430,36 @@ export class WorkoutService {
   }
 
   // Start session
-  async startTodayWorkoutSession(user: ActiveUserData) {
-    const today = new Date();
-    const normalizedDate = normalizeToUTCDate(today);
-
-    // Find today schedule
-    const schedule = await this.workoutScheduleRepo.findOne({
-      where: {
-        user: { id: user.sub },
-        scheduled_date: normalizedDate,
-      },
-      relations: { workout: true },
+  async startWorkoutSession(workoutId: number, user: ActiveUserData) {
+    const workout = await this.workoutRepo.findOne({
+      where: { id: workoutId },
     });
 
-    if (!schedule) {
-      throw new NotFoundException('No workout scheduled for today.');
+    if (!workout) {
+      throw new NotFoundException('Workout not found.');
     }
-
-    const existingSession = await this.workoutSessionRepo.findOne({
-      where: {
-        schedule: { id: schedule.id },
-        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
-      },
-    });
 
     // If no session exists, create a new one and use it
-    if (!existingSession) {
-      await this.createSessionFromSchedule(schedule, user);
+    const existingSession = await this.workoutSessionRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        workout: { id: workoutId },
+        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
+      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: this.getWorkoutSessionDetailOrder(),
+    });
+
+    if (existingSession) {
+      return existingSession;
     }
 
-    return { message: 'Workout session started successfully' };
+    return await this.createSessionFromWorkout(workoutId, user);
   }
 
-  // Create a new session
-  private async createSessionFromSchedule(
-    schedule: WorkoutSchedule,
+  // Create a new session from workout
+  private async createSessionFromWorkout(
+    workoutId: number,
     user: ActiveUserData,
   ) {
     return await this.dataSource.transaction(async (manager) => {
@@ -471,10 +469,10 @@ export class WorkoutService {
         WorkoutSessionExercise,
       );
 
-      // Load planned workout exercises in order
+      // Load workout exercises in order
       const plannedExercises = await workoutExerciseRepo.find({
         where: {
-          workout: { id: schedule.workout.id },
+          workout: { id: workoutId },
         },
         relations: {
           exercise: true,
@@ -490,7 +488,8 @@ export class WorkoutService {
 
       // Create session
       const session = workoutSessionRepo.create({
-        schedule: { id: schedule.id },
+        user: { id: user.sub },
+        workout: { id: workoutId },
         status: WorkoutSessionStatus.ACTIVE,
         started_at: new Date(),
         created_by: user.username,
@@ -518,52 +517,50 @@ export class WorkoutService {
       }));
 
       await workoutSessionExerciseRepo.insert(sessionExerciseValues);
+
+      return await workoutSessionRepo.findOneOrFail({
+        where: { id: savedSession.id },
+        relations: this.getWorkoutSessionDetailRelations(),
+        order: this.getWorkoutSessionDetailOrder(),
+      });
     });
   }
 
   // Cancel session
-  async cancelTodayWorkoutSession(user: ActiveUserData) {
-    const today = new Date();
-    const normalizedDate = normalizeToUTCDate(today);
-
-    // Find today schedule
-    const schedule = await this.workoutScheduleRepo.findOne({
+  async cancelWorkoutSession(id: number, user: ActiveUserData) {
+    const session = await this.workoutSessionRepo.findOne({
       where: {
+        id,
         user: { id: user.sub },
-        scheduled_date: normalizedDate,
       },
     });
 
-    if (!schedule) {
-      throw new NotFoundException('No workout scheduled for today.');
+    if (!session) {
+      throw new NotFoundException('Workout session not found.');
     }
 
-    // Find current active/paused session
-    const existingSession = await this.workoutSessionRepo.findOne({
-      where: {
-        schedule: { id: schedule.id },
-        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
-      },
-    });
-
-    if (!existingSession) {
-      throw new NotFoundException('No active workout session found to cancel.');
+    if (
+      session.status !== WorkoutSessionStatus.ACTIVE &&
+      session.status !== WorkoutSessionStatus.PAUSED
+    ) {
+      throw new BadRequestException(
+        'Only active or paused workout sessions can be cancelled.',
+      );
     }
 
-    // Cancel session
-    existingSession.status = WorkoutSessionStatus.CANCELLED;
-    existingSession.ended_at = new Date();
-    existingSession.updated_by = user.username;
+    session.status = WorkoutSessionStatus.CANCELLED;
+    session.ended_at = new Date();
+    session.updated_by = user.username;
 
-    await this.workoutSessionRepo.save(existingSession);
+    await this.workoutSessionRepo.save(session);
 
     return { message: 'Workout session cancelled successfully' };
   }
 
   private getWorkoutSessionDetailRelations() {
     return {
-      schedule: {
-        workout: { workout_focus_type: true },
+      workout: {
+        workout_focus_type: true,
       },
       session_exercises: {
         exercise: {
