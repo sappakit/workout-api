@@ -179,18 +179,16 @@ export class FinishWorkoutSessionExerciseDto {
   orderIndex: number;
 
   @IsOptional()
-  @IsDateString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @ApiPropertyOptional()
-  startedAt: string | null;
+  plannedRestTime: number | null;
 
   @IsOptional()
   @IsDateString()
   @ApiPropertyOptional()
   completedAt: string | null;
-
-  @IsBoolean()
-  @ApiProperty()
-  isSkipped: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -200,10 +198,9 @@ export class FinishWorkoutSessionExerciseDto {
 }
 
 export class FinishWorkoutSessionDto {
-  @IsOptional()
   @IsDateString()
   @ApiPropertyOptional()
-  endedAt: string | null;
+  endedAt: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -211,6 +208,12 @@ export class FinishWorkoutSessionDto {
   @Min(0)
   @ApiPropertyOptional()
   totalDuration: number | null;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional()
+  totalPausedDuration: number;
 
   @IsOptional()
   @Type(() => Number)

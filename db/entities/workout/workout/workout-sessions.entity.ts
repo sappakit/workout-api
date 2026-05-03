@@ -26,6 +26,9 @@ export class WorkoutSession extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   paused_at?: Date | null;
 
+  @Column({ type: 'int', default: 0, comment: 'seconds' })
+  total_paused_duration: number;
+
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
   total_duration?: number | null;
 

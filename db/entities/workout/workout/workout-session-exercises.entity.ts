@@ -44,13 +44,7 @@ export class WorkoutSessionExercise {
   planned_distance?: number | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  started_at?: Date | null;
-
-  @Column({ type: 'timestamptz', nullable: true })
   completed_at?: Date | null;
-
-  @Column({ type: 'boolean', default: false })
-  is_skipped: boolean;
 
   @ManyToOne(() => WorkoutSession, (session) => session.session_exercises, {
     nullable: false,

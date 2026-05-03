@@ -5,9 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'db/entities/auth';
 import {
-  Equipment,
   Exercise,
   Muscle,
   Workout,
@@ -511,8 +509,6 @@ export class WorkoutService {
         planned_duration: item.planned_duration,
         planned_distance: item.planned_distance,
 
-        is_skipped: false,
-        started_at: null,
         completed_at: null,
       }));
 
@@ -772,8 +768,10 @@ export class WorkoutService {
 
       // 5) Update workout_session
       session.status = WorkoutSessionStatus.COMPLETED;
-      session.ended_at = body.endedAt ? new Date(body.endedAt) : new Date();
+      session.ended_at = new Date(body.endedAt);
+      session.paused_at = null;
       session.total_duration = body.totalDuration ?? null;
+      session.total_paused_duration = body.totalPausedDuration ?? 0;
       session.calories_burned = body.caloriesBurned ?? null;
 
       await workoutSessionRepo.save(session);
@@ -811,15 +809,12 @@ export class WorkoutService {
       }
 
       sessionExercise.order_index = incomingExercise.orderIndex;
-      sessionExercise.started_at = incomingExercise.startedAt
-        ? new Date(incomingExercise.startedAt)
-        : null;
+      sessionExercise.planned_rest_time = incomingExercise.plannedRestTime;
       sessionExercise.completed_at = incomingExercise.completedAt
         ? new Date(incomingExercise.completedAt)
         : null;
-      sessionExercise.is_skipped = incomingExercise.isSkipped;
 
-      // Optional: allow changing exercise relation if needed
+      // TODO: Optional: allow changing exercise relation if needed
       if (sessionExercise.exercise.id !== incomingExercise.exerciseId) {
         const newExercise = await exerciseRepo.findOne({
           where: { id: incomingExercise.exerciseId },
@@ -849,13 +844,9 @@ export class WorkoutService {
         session: { id: session.id },
         exercise: { id: exercise.id },
         order_index: incomingExercise.orderIndex,
-        started_at: incomingExercise.startedAt
-          ? new Date(incomingExercise.startedAt)
-          : null,
         completed_at: incomingExercise.completedAt
           ? new Date(incomingExercise.completedAt)
           : null,
-        is_skipped: incomingExercise.isSkipped,
       });
 
       sessionExercise = await workoutSessionExerciseRepo.save(sessionExercise);

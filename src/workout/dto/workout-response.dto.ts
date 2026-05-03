@@ -169,17 +169,9 @@ class WorkoutSessionExerciseDto extends PlannedWorkoutExerciseConfigDto {
   @ApiProperty()
   orderIndex: number;
 
-  @Expose({ name: 'started_at' })
-  @ApiProperty()
-  startedAt: Date;
-
   @Expose({ name: 'completed_at' })
   @ApiProperty()
   completedAt: Date;
-
-  @Expose({ name: 'is_skipped' })
-  @ApiProperty()
-  isSkipped: boolean;
 
   @Expose()
   @Type(() => ExerciseDto)
@@ -212,6 +204,10 @@ export class WorkoutSessionDto {
   @Expose({ name: 'ended_at' })
   @ApiProperty()
   endedAt: Date;
+
+  @Expose({ name: 'total_paused_duration' })
+  @ApiProperty()
+  totalPausedDuration: number;
 
   @Expose({ name: 'total_duration' })
   @ApiProperty()
