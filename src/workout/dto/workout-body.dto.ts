@@ -199,7 +199,7 @@ export class FinishWorkoutSessionExerciseDto {
 
 export class FinishWorkoutSessionDto {
   @IsDateString()
-  @ApiPropertyOptional()
+  @ApiProperty()
   endedAt: string;
 
   @IsOptional()
@@ -212,7 +212,7 @@ export class FinishWorkoutSessionDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty()
   totalPausedDuration: number;
 
   @IsOptional()

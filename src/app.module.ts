@@ -11,6 +11,7 @@ import { CommonModule } from './common/common.module';
 import { WorkoutModule } from './workout/workout.module';
 import { getDBEnv } from 'utils/getDBEnv.util';
 import { ExerciseModule } from './exercise/exercise.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ExerciseModule } from './exercise/exercise.module';
     CommonModule,
     WorkoutModule,
     ExerciseModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

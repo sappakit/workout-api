@@ -11,10 +11,10 @@ export class UserProfile extends BaseEntity {
   last_name?: string;
 
   @Column({ type: 'varchar', length: 20, unique: true, nullable: true })
-  phone_number?: string;
+  phone_number?: string | null;
 
   @Column({ type: 'text', nullable: true })
-  image_url?: string;
+  image_url?: string | null;
 
   @OneToOne(() => User, (user) => user.profile, { nullable: false })
   @JoinColumn({ name: 'user_id' })
