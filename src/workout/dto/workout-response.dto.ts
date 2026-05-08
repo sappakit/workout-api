@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import {
   WorkoutCurrentMode,
+  WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
 } from '../enums/workout.enum';
 import { ExerciseDto, MuscleDto } from 'src/exercise/dto/exercise-response.dto';
@@ -242,4 +243,79 @@ export class WorkoutCurrentDto {
   @Type(() => WorkoutScheduleDto)
   @ApiProperty({ type: () => WorkoutScheduleDto })
   schedule: WorkoutScheduleDto | null;
+}
+
+class WorkoutProgressSummaryDto {
+  @Expose()
+  @ApiProperty()
+  workoutsCompleted: number;
+
+  @Expose()
+  @ApiProperty()
+  totalVolumeKg: number;
+
+  @Expose()
+  @ApiProperty()
+  completedSets: number;
+
+  @Expose()
+  @ApiProperty()
+  totalDurationSeconds: number;
+}
+
+class WorkoutProgressVolumeTrendDto {
+  @Expose()
+  @ApiProperty({ example: 'Mon' })
+  label: string;
+
+  @Expose()
+  @ApiProperty()
+  volumeKg: number;
+}
+
+class WorkoutProgressBestPerformanceDto {
+  @Expose()
+  @ApiProperty()
+  exerciseName: string;
+
+  @Expose()
+  @ApiProperty()
+  bestWeightKg: number;
+
+  @Expose()
+  @ApiProperty()
+  bestSetVolumeKg: number;
+
+  @Expose()
+  @ApiProperty({ example: '60 kg x 10 reps' })
+  bestSetLabel: string;
+}
+
+export class WorkoutProgressOverviewDto {
+  @Expose()
+  @ApiProperty()
+  type: WorkoutProgressOverviewType;
+
+  @Expose()
+  @ApiProperty()
+  startDate: Date;
+
+  @Expose()
+  @ApiProperty()
+  endDate: Date;
+
+  @Expose()
+  @Type(() => WorkoutProgressSummaryDto)
+  @ApiProperty({ type: () => WorkoutProgressSummaryDto })
+  summary: WorkoutProgressSummaryDto;
+
+  @Expose()
+  @Type(() => WorkoutProgressVolumeTrendDto)
+  @ApiProperty({ type: () => [WorkoutProgressVolumeTrendDto] })
+  volumeTrend: WorkoutProgressVolumeTrendDto[];
+
+  @Expose()
+  @Type(() => WorkoutProgressBestPerformanceDto)
+  @ApiProperty({ type: () => [WorkoutProgressBestPerformanceDto] })
+  bestPerformances: WorkoutProgressBestPerformanceDto[];
 }

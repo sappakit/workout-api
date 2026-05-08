@@ -20,6 +20,7 @@ import {
   WorkoutCurrentDto,
   WorkoutDto,
   WorkoutFocusTypeDto,
+  WorkoutProgressOverviewDto,
   WorkoutScheduleDto,
   WorkoutSessionDto,
 } from './dto/workout-response.dto';
@@ -75,6 +76,19 @@ export class WorkoutController {
     return this.workoutService.getScheduleByDate(user, query);
   }
 
+  // Get workout progress overview
+  @Auth(AuthType.USER)
+  @Get('progress/overview')
+  @ApiResponse({
+    status: 200,
+    description: 'Get workout progress overview',
+    type: WorkoutProgressOverviewDto,
+  })
+  @Serialize(WorkoutProgressOverviewDto)
+  async getProgressOverview(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getProgressOverview(user);
+  }
+
   // Get current workout state for today
   // (in-progress session, scheduled workout, or rest day)
   @Auth(AuthType.USER)
@@ -87,6 +101,22 @@ export class WorkoutController {
   @Serialize(WorkoutCurrentDto)
   async getCurrentWorkout(@ActiveUser() user: ActiveUserData) {
     return this.workoutService.getCurrentWorkout(user);
+  }
+
+  // Get user workout session history
+  @Auth(AuthType.USER)
+  @Get('sessions/history')
+  @ApiResponse({
+    status: 200,
+    description: 'Get workout session history',
+    type: [WorkoutSessionDto],
+  })
+  @Serialize(WorkoutSessionDto)
+  async getWorkoutSessionHistory(
+    @ActiveUser() user: ActiveUserData,
+    @Query() query: PagingDto,
+  ) {
+    return this.workoutService.getWorkoutSessionHistory(user, query);
   }
 
   // Finish workout session

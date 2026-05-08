@@ -23,6 +23,7 @@ import { PaginationService } from 'src/common/pagination/pagination.service';
 import { getISOWeekday, normalizeToUTCDate } from 'utils/time.util';
 import {
   WorkoutCurrentMode,
+  WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
   WorkoutSessionStatus,
 } from './enums/workout.enum';
@@ -425,6 +426,27 @@ export class WorkoutService {
       session: null,
       schedule: fullSchedule,
     };
+  }
+
+  // Get user workout session history
+  async getWorkoutSessionHistory(user: ActiveUserData, query: PagingDto) {
+    const options: FindManyOptions<WorkoutSession> = {
+      where: {
+        user: { id: user.sub },
+        status: WorkoutSessionStatus.COMPLETED,
+      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: {
+        ended_at: 'DESC',
+        started_at: 'DESC',
+      },
+    };
+
+    return this.paginationService.paginateRepository(
+      this.workoutSessionRepo,
+      options,
+      query,
+    );
   }
 
   // Start session
@@ -913,5 +935,220 @@ export class WorkoutService {
     }
 
     return setEntity;
+  }
+
+  // Get workout progress overview
+  async getProgressOverview(user: ActiveUserData) {
+    // TODO: refactor to include weekly/yearly/all time
+    const { queryStartDate, queryEndDate, displayStartDate, displayEndDate } =
+      this.getCurrentWeekRange();
+
+    const sessions = await this.workoutSessionRepo
+      .createQueryBuilder('session')
+
+      .leftJoinAndSelect('session.workout', 'workout')
+      .leftJoinAndSelect('session.session_exercises', 'sessionExercise')
+      .leftJoinAndSelect('sessionExercise.exercise', 'exercise')
+      .leftJoinAndSelect('sessionExercise.sets', 'set')
+
+      .where('session.user_id = :userId', { userId: user.sub })
+      .andWhere('session.status = :status', {
+        status: WorkoutSessionStatus.COMPLETED,
+      })
+      .andWhere('session.ended_at >= :queryStartDate', { queryStartDate })
+      .andWhere('session.ended_at < :queryEndDate', { queryEndDate })
+
+      .orderBy('session.ended_at', 'DESC')
+      .addOrderBy('sessionExercise.order_index', 'ASC')
+      .addOrderBy('set.set_number', 'ASC')
+      .getMany();
+
+    return {
+      type: WorkoutProgressOverviewType.WEEKLY,
+      startDate: displayStartDate,
+      endDate: displayEndDate,
+      summary: this.getProgressSummary(sessions),
+      volumeTrend: this.getWeeklyVolumeTrend(sessions),
+      bestPerformances: this.getBestPerformances(sessions),
+    };
+  }
+
+  private getCurrentWeekRange() {
+    const now = new Date();
+
+    const queryStartDate = new Date(now);
+    const currentDay = queryStartDate.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Calculate how many days to go back to reach Monday
+    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+    // Set the date and time to Monday at midnight for the current week
+    queryStartDate.setDate(queryStartDate.getDate() - daysFromMonday);
+    queryStartDate.setHours(0, 0, 0, 0);
+
+    const queryEndDate = new Date(queryStartDate);
+    queryEndDate.setDate(queryEndDate.getDate() + 7); // Next Monday at midnight
+
+    // Display date for frontend
+    const displayStartDate = new Date(queryStartDate);
+
+    const displayEndDate = new Date(queryEndDate);
+
+    // Show the inclusive end of the week (Sunday)
+    displayEndDate.setDate(displayEndDate.getDate() - 1);
+
+    return {
+      queryStartDate,
+      queryEndDate,
+      displayStartDate,
+      displayEndDate,
+    };
+  }
+
+  private getProgressSummary(sessions: WorkoutSession[]) {
+    return {
+      workoutsCompleted: sessions.length,
+      totalVolumeKg: this.getTotalVolumeKg(sessions),
+      completedSets: this.getCompletedSetCount(sessions),
+      totalDurationSeconds: sessions.reduce((total, session) => {
+        return total + (session.total_duration ?? 0);
+      }, 0),
+    };
+  }
+
+  private getWeeklyVolumeTrend(sessions: WorkoutSession[]) {
+    const days = [
+      { label: 'Mon', day: 1 },
+      { label: 'Tue', day: 2 },
+      { label: 'Wed', day: 3 },
+      { label: 'Thu', day: 4 },
+      { label: 'Fri', day: 5 },
+      { label: 'Sat', day: 6 },
+      { label: 'Sun', day: 0 },
+    ];
+
+    return days.map((day) => {
+      const volumeKg = sessions.reduce((total, session) => {
+        if (!session.ended_at) return total;
+
+        const sessionDay = session.ended_at.getDay();
+
+        if (sessionDay !== day.day) return total;
+
+        return total + this.getSessionVolumeKg(session);
+      }, 0);
+
+      return {
+        label: day.label,
+        volumeKg,
+      };
+    });
+  }
+
+  private getBestPerformances(sessions: WorkoutSession[]) {
+    const performanceMap = new Map<
+      number,
+      {
+        exerciseName: string;
+        bestWeightKg: number;
+        bestSetVolumeKg: number;
+        bestSetLabel: string;
+      }
+    >();
+
+    for (const session of sessions) {
+      for (const sessionExercise of session.session_exercises ?? []) {
+        const exerciseId = sessionExercise.exercise?.id;
+        const exerciseName = sessionExercise.exercise?.name;
+
+        if (!exerciseId || !exerciseName) continue;
+
+        for (const set of sessionExercise.sets ?? []) {
+          if (!set.completed_at) continue;
+          if (set.reps == null || set.weight == null) continue;
+
+          const reps = Number(set.reps);
+          const weight = Number(set.weight);
+          const setVolumeKg = reps * weight;
+
+          const current = performanceMap.get(exerciseId);
+
+          if (!current) {
+            performanceMap.set(exerciseId, {
+              exerciseName,
+              bestWeightKg: weight,
+              bestSetVolumeKg: setVolumeKg,
+              bestSetLabel: `${this.formatNumber(weight)} kg x ${reps} reps`,
+            });
+
+            continue;
+          }
+
+          const isBetterVolume = setVolumeKg > current.bestSetVolumeKg;
+          const bestWeightKg = Math.max(current.bestWeightKg, weight);
+
+          performanceMap.set(exerciseId, {
+            exerciseName,
+            bestWeightKg,
+            bestSetVolumeKg: isBetterVolume
+              ? setVolumeKg
+              : current.bestSetVolumeKg,
+            bestSetLabel: isBetterVolume
+              ? `${this.formatNumber(weight)} kg x ${reps} reps`
+              : current.bestSetLabel,
+          });
+        }
+      }
+    }
+
+    return Array.from(performanceMap.values())
+      .sort((a, b) => b.bestSetVolumeKg - a.bestSetVolumeKg)
+      .slice(0, 5);
+  }
+
+  private getTotalVolumeKg(sessions: WorkoutSession[]) {
+    return sessions.reduce((total, session) => {
+      return total + this.getSessionVolumeKg(session);
+    }, 0);
+  }
+
+  private getSessionVolumeKg(session: WorkoutSession) {
+    return (session.session_exercises ?? []).reduce(
+      (exerciseTotal, sessionExercise) => {
+        const setVolume = (sessionExercise.sets ?? []).reduce(
+          (setTotal, set) => {
+            if (!set.completed_at) return setTotal;
+            if (set.reps == null || set.weight == null) return setTotal;
+
+            return setTotal + Number(set.reps) * Number(set.weight);
+          },
+          0,
+        );
+
+        return exerciseTotal + setVolume;
+      },
+      0,
+    );
+  }
+
+  private getCompletedSetCount(sessions: WorkoutSession[]) {
+    return sessions.reduce((total, session) => {
+      const sessionCompletedSets = (session.session_exercises ?? []).reduce(
+        (exerciseTotal, sessionExercise) => {
+          const completedSets = (sessionExercise.sets ?? []).filter(
+            (set) => set.completed_at,
+          ).length;
+
+          return exerciseTotal + completedSets;
+        },
+        0,
+      );
+
+      return total + sessionCompletedSets;
+    }, 0);
+  }
+
+  private formatNumber(value: number) {
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
   }
 }

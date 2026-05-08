@@ -35,3 +35,9 @@ export enum WorkoutCurrentMode {
   SCHEDULED = 'scheduled',
   REST_DAY = 'rest_day',
 }
+
+export enum WorkoutProgressOverviewType {
+  WEEKLY = 'weekly',
+  YEARLY = 'yearly',
+  ALL_TIME = 'all_time',
+}
