@@ -9,7 +9,7 @@ import {
 import { Role } from './role.entity';
 import { UserProfile } from './user-profile.entity';
 import { BaseEntity } from '../shared/base.entity';
-import { WorkoutSchedule, WorkoutSession } from '../workout';
+import { Workout, WorkoutSchedule, WorkoutSession } from '../workout';
 import { WorkoutWeeklyPlan } from '../workout/workout/workout-weekly-plan.entity';
 
 @Entity({ schema: 'auth', name: 'user' })
@@ -44,4 +44,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => WorkoutSession, (session) => session.user)
   sessions: WorkoutSession[];
+
+  @OneToMany(() => Workout, (workout) => workout.user)
+  workouts: Workout[];
 }

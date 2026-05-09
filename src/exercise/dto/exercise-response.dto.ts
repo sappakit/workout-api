@@ -65,6 +65,10 @@ export class ExerciseDto {
   @ApiProperty()
   description: string;
 
+  @Expose({ name: 'image_url' })
+  @ApiProperty()
+  imageUrl: string;
+
   @Expose({ name: 'exercise_type' })
   @ApiProperty()
   exerciseType: ExerciseType;

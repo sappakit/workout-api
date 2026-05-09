@@ -16,6 +16,9 @@ export class Exercise extends BaseEntity {
   difficulty_level: DifficultyLevel;
 
   @Column({ type: 'text', nullable: true })
+  image_url?: string;
+
+  @Column({ type: 'text', nullable: true })
   description?: string;
 
   // strength: per set, cardio: per minutes
