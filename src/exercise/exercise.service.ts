@@ -29,10 +29,18 @@ export class ExerciseService {
       order: { name: 'ASC' },
     };
 
+    const searchFields = [
+      'name',
+      'exercise_type',
+      'difficulty_level',
+      'muscles.muscle.name',
+    ];
+
     return this.paginationService.paginateRepository(
       this.exerciseRepo,
       options,
       query,
+      { searchFields },
     );
   }
 
