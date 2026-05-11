@@ -77,6 +77,23 @@ export class WorkoutController {
     return this.workoutService.getScheduleByDate(user, query);
   }
 
+  // Update scheduled workout
+  @Auth(AuthType.USER)
+  @Patch('schedule/:id/workout')
+  @ApiResponse({
+    status: 200,
+    description: 'Update scheduled workout',
+    type: WorkoutScheduleDto,
+  })
+  @Serialize(WorkoutScheduleDto)
+  async updateScheduleWorkout(
+    @ActiveUser() user: ActiveUserData,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateWorkoutScheduleWorkoutDto,
+  ) {
+    return this.workoutService.updateScheduleWorkout(user, id, body);
+  }
+
   // Get workout progress overview
   @Auth(AuthType.USER)
   @Get('progress/overview')
@@ -118,6 +135,19 @@ export class WorkoutController {
     @Query() query: PagingDto,
   ) {
     return this.workoutService.getWorkoutSessionHistory(user, query);
+  }
+
+  // Start empty workout session
+  @Auth(AuthType.USER)
+  @Post('sessions/start/empty')
+  @ApiResponse({
+    status: 200,
+    description: 'Start or resume an empty workout session',
+    type: WorkoutSessionDto,
+  })
+  @Serialize(WorkoutSessionDto)
+  async startEmptyWorkoutSession(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.startEmptyWorkoutSession(user);
   }
 
   // Finish workout session
@@ -195,22 +225,5 @@ export class WorkoutController {
     @Body() body: UpdateWorkoutDto,
   ) {
     return this.workoutService.updateWorkout(id, body);
-  }
-
-  // Update scheduled workout
-  @Auth(AuthType.USER)
-  @Patch('schedule/:id/workout')
-  @ApiResponse({
-    status: 200,
-    description: 'Update scheduled workout',
-    type: WorkoutScheduleDto,
-  })
-  @Serialize(WorkoutScheduleDto)
-  async updateScheduleWorkout(
-    @ActiveUser() user: ActiveUserData,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: UpdateWorkoutScheduleWorkoutDto,
-  ) {
-    return this.workoutService.updateScheduleWorkout(user, id, body);
   }
 }

@@ -1,4 +1,4 @@
-import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, In, IsNull, Repository } from 'typeorm';
 import {
   BadRequestException,
   Injectable,
@@ -471,15 +471,7 @@ export class WorkoutService {
     }
 
     // If no session exists, create a new one and use it
-    const existingSession = await this.workoutSessionRepo.findOne({
-      where: {
-        user: { id: user.sub },
-        workout: { id: workoutId },
-        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
-      },
-      relations: this.getWorkoutSessionDetailRelations(),
-      order: this.getWorkoutSessionDetailOrder(),
-    });
+    const existingSession = await this.findActiveSessionForUser(user.sub);
 
     if (existingSession) {
       return existingSession;
@@ -552,6 +544,43 @@ export class WorkoutService {
         relations: this.getWorkoutSessionDetailRelations(),
         order: this.getWorkoutSessionDetailOrder(),
       });
+    });
+  }
+
+  // Start empty workout session
+  async startEmptyWorkoutSession(user: ActiveUserData) {
+    const existingSession = await this.findActiveSessionForUser(user.sub);
+
+    if (existingSession) {
+      return existingSession;
+    }
+
+    const session = this.workoutSessionRepo.create({
+      user: { id: user.sub },
+      workout: null,
+      status: WorkoutSessionStatus.ACTIVE,
+      started_at: new Date(),
+      created_by: user.username,
+      updated_by: user.username,
+    });
+
+    const savedSession = await this.workoutSessionRepo.save(session);
+
+    return await this.workoutSessionRepo.findOneOrFail({
+      where: { id: savedSession.id },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: this.getWorkoutSessionDetailOrder(),
+    });
+  }
+
+  private async findActiveSessionForUser(userId: number) {
+    return await this.workoutSessionRepo.findOne({
+      where: {
+        user: { id: userId },
+        status: In([WorkoutSessionStatus.ACTIVE, WorkoutSessionStatus.PAUSED]),
+      },
+      relations: this.getWorkoutSessionDetailRelations(),
+      order: this.getWorkoutSessionDetailOrder(),
     });
   }
 

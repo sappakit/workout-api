@@ -39,9 +39,11 @@ export class WorkoutSession extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Workout, (workout) => workout.sessions, { nullable: false })
+  @ManyToOne(() => Workout, (workout) => workout.sessions, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'workout_id' })
-  workout: Workout;
+  workout: Workout | null;
 
   @OneToMany(() => WorkoutSessionExercise, (wse) => wse.session)
   session_exercises: WorkoutSessionExercise[];
