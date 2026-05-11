@@ -9,7 +9,7 @@ import { BaseEntity } from 'db/entities/shared';
 @Entity({ schema: 'workout', name: 'workout_schedule' })
 export class WorkoutSchedule extends BaseEntity {
   @Column({ type: 'date' })
-  scheduled_date: Date;
+  scheduled_date: string;
 
   @Column({ type: 'varchar', length: 20 })
   status: WorkoutScheduleStatus;

@@ -20,7 +20,7 @@ import {
 } from 'db/entities/workout';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
-import { getISOWeekday, normalizeToUTCDate } from 'utils/time.util';
+import { getISOWeekday, toUTCDateString } from 'utils/time.util';
 import {
   WorkoutCurrentMode,
   WorkoutProgressOverviewType,
@@ -34,6 +34,7 @@ import {
   FinishWorkoutSessionExerciseDto,
   FinishWorkoutSessionSetDto,
   UpdateWorkoutDto,
+  UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
 
 @Injectable()
@@ -60,13 +61,31 @@ export class WorkoutService {
   // Workouts
   async findAllWorkouts(query: PagingDto) {
     const options: FindManyOptions<Workout> = {
+      // relations: {
+      //   workout_focus_type: true,
+      //   muscles: {
+      //     muscle: true,
+      //   },
+      //   workout_exercises: {
+      //     exercise: true,
+      //   },
+      // },
       order: { created_at: 'DESC' },
     };
+
+    const searchFields = [
+      'name',
+      'description',
+      // 'workout_focus_type.name',
+      // 'muscles.muscle.name',
+      // 'workout_exercises.exercise.name',
+    ];
 
     return this.paginationService.paginateRepository(
       this.workoutRepo,
       options,
       query,
+      { searchFields },
     );
   }
 
@@ -298,25 +317,25 @@ export class WorkoutService {
     const { date } = query;
 
     const rawDate = date ? new Date(date) : new Date();
-    const normalizedDate = normalizeToUTCDate(rawDate);
+    const scheduledDate = toUTCDateString(rawDate);
 
     // Check if schedule already exists
     const exists = await this.workoutScheduleRepo.exists({
       where: {
         user: { id: user.sub },
-        scheduled_date: normalizedDate,
+        scheduled_date: scheduledDate,
       },
     });
 
     // If not exists, add schedule
     if (!exists) {
-      await this.createScheduleForDate(user, normalizedDate);
+      await this.createScheduleForDate(user, scheduledDate);
     }
 
     const schedule = await this.workoutScheduleRepo.findOne({
       where: {
         user: { id: user.sub },
-        scheduled_date: normalizedDate,
+        scheduled_date: scheduledDate,
       },
       relations: {
         workout: {
@@ -344,9 +363,9 @@ export class WorkoutService {
   // Create a new schedule for date
   private async createScheduleForDate(
     user: ActiveUserData,
-    normalizedDate: Date,
+    scheduledDate: string,
   ) {
-    const dayOfWeek = getISOWeekday(normalizedDate); // 1–7
+    const dayOfWeek = getISOWeekday(new Date(scheduledDate)); // 1–7
 
     const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
       where: {
@@ -366,7 +385,7 @@ export class WorkoutService {
     const newSchedule = this.workoutScheduleRepo.create({
       user: { id: user.sub },
       workout: { id: weeklyPlan.workout.id },
-      scheduled_date: normalizedDate,
+      scheduled_date: scheduledDate,
       status: WorkoutScheduleStatus.PLANNED,
       created_by: user.username,
       updated_by: user.username,
@@ -397,18 +416,14 @@ export class WorkoutService {
       };
     }
 
-    // use today schedule
+    // Create or get today's schedule from weekly plan
     const today = new Date();
-    const normalizedDate = normalizeToUTCDate(today);
 
-    const schedule = await this.workoutScheduleRepo.findOne({
-      where: {
-        user: { id: user.sub },
-        scheduled_date: normalizedDate,
-      },
+    const schedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
     });
 
-    // no schedule means rest day
+    // No schedule means rest day
     if (!schedule) {
       return {
         mode: WorkoutCurrentMode.REST_DAY,
@@ -417,14 +432,10 @@ export class WorkoutService {
       };
     }
 
-    const fullSchedule = await this.getScheduleByDate(user, {
-      date: today.toISOString(),
-    });
-
     return {
       mode: WorkoutCurrentMode.SCHEDULED,
       session: null,
-      schedule: fullSchedule,
+      schedule,
     };
   }
 
@@ -1150,5 +1161,54 @@ export class WorkoutService {
 
   private formatNumber(value: number) {
     return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+
+  // Update scheduled workout
+  async updateScheduleWorkout(
+    user: ActiveUserData,
+    scheduleId: number,
+    dto: UpdateWorkoutScheduleWorkoutDto,
+  ) {
+    const schedule = await this.workoutScheduleRepo.findOne({
+      where: {
+        id: scheduleId,
+        user: { id: user.sub },
+      },
+      relations: {
+        workout: true,
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Workout schedule not found');
+    }
+
+    const workout = await this.workoutRepo.findOne({
+      where: [
+        // User's own workout
+        {
+          id: dto.workoutId,
+          user: { id: user.sub },
+        },
+        // Public workout plan
+        {
+          id: dto.workoutId,
+          is_public: true,
+        },
+      ],
+    });
+
+    if (!workout) {
+      throw new NotFoundException('Workout not found');
+    }
+
+    schedule.workout = workout;
+    schedule.updated_by = user.username;
+
+    await this.workoutScheduleRepo.save(schedule);
+
+    return this.getScheduleByDate(user, {
+      date: schedule.scheduled_date,
+    });
   }
 }

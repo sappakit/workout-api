@@ -27,6 +27,7 @@ import {
 import {
   FinishWorkoutSessionDto,
   UpdateWorkoutDto,
+  UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 
@@ -194,5 +195,22 @@ export class WorkoutController {
     @Body() body: UpdateWorkoutDto,
   ) {
     return this.workoutService.updateWorkout(id, body);
+  }
+
+  // Update scheduled workout
+  @Auth(AuthType.USER)
+  @Patch('schedule/:id/workout')
+  @ApiResponse({
+    status: 200,
+    description: 'Update scheduled workout',
+    type: WorkoutScheduleDto,
+  })
+  @Serialize(WorkoutScheduleDto)
+  async updateScheduleWorkout(
+    @ActiveUser() user: ActiveUserData,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateWorkoutScheduleWorkoutDto,
+  ) {
+    return this.workoutService.updateScheduleWorkout(user, id, body);
   }
 }

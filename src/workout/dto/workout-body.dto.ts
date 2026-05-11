@@ -11,7 +11,6 @@ import {
   ArrayNotEmpty,
   ValidateNested,
   IsDateString,
-  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -227,4 +226,11 @@ export class FinishWorkoutSessionDto {
   @Type(() => FinishWorkoutSessionExerciseDto)
   @ApiProperty({ type: [FinishWorkoutSessionExerciseDto] })
   sessionExercises: FinishWorkoutSessionExerciseDto[];
+}
+
+export class UpdateWorkoutScheduleWorkoutDto {
+  @IsNotEmpty()
+  @IsInt()
+  @ApiProperty({ example: 1 })
+  workoutId: number;
 }

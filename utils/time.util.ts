@@ -2,12 +2,12 @@ export function nowSec() {
   return Math.floor(Date.now() / 1000);
 }
 
-export function normalizeToUTCDate(date: Date): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+// Date -> "YYYY-MM-DD"
+export function toUTCDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
+// Date -> 1-7, Monday = 1 and Sunday = 7
 export function getISOWeekday(date: Date): number {
   const day = date.getUTCDay();
   return day === 0 ? 7 : day;
