@@ -26,7 +26,7 @@ import {
 } from './dto/workout-response.dto';
 import {
   FinishWorkoutSessionDto,
-  UpdateWorkoutDto,
+  SaveWorkoutDto,
   UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
@@ -46,6 +46,22 @@ export class WorkoutController {
   @Serialize(WorkoutDto)
   async findAllWorkouts(@Query() query: PagingDto) {
     return this.workoutService.findAllWorkouts(query);
+  }
+
+  // Create workout
+  @Auth(AuthType.USER)
+  @Post()
+  @ApiResponse({
+    status: 201,
+    description: 'Create workout',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async createWorkout(
+    @Body() body: SaveWorkoutDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.workoutService.createWorkout(body, user);
   }
 
   // Workout focus type
@@ -212,7 +228,7 @@ export class WorkoutController {
   }
 
   // Update workout
-  @Auth(AuthType.PUBLIC)
+  @Auth(AuthType.USER)
   @Patch(':id')
   @ApiResponse({
     status: 200,
@@ -222,8 +238,9 @@ export class WorkoutController {
   @Serialize(SuccessMessageDto)
   async updateWorkout(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: UpdateWorkoutDto,
+    @Body() body: SaveWorkoutDto,
+    @ActiveUser() user: ActiveUserData,
   ) {
-    return this.workoutService.updateWorkout(id, body);
+    return this.workoutService.updateWorkout(id, body, user);
   }
 }

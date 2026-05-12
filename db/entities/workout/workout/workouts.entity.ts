@@ -49,11 +49,9 @@ export class Workout extends BaseEntity {
   @JoinColumn({ name: 'source_workout_id' })
   source_workout: Workout | null;
 
-  @ManyToOne(() => WorkoutFocusType, (focus) => focus.workouts, {
-    nullable: false,
-  })
+  @ManyToOne(() => WorkoutFocusType, (focus) => focus.workouts)
   @JoinColumn({ name: 'workout_focus_type_id' })
-  workout_focus_type: WorkoutFocusType;
+  workout_focus_type: WorkoutFocusType | null;
 
   @ManyToOne(() => User, (user) => user.workouts, {
     nullable: false,

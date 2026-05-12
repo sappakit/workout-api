@@ -33,9 +33,10 @@ import {
   FinishWorkoutSessionDto,
   FinishWorkoutSessionExerciseDto,
   FinishWorkoutSessionSetDto,
-  UpdateWorkoutDto,
+  SaveWorkoutDto,
   UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
+import { validateWorkoutSavePayload } from './helpers/workout.helper';
 
 @Injectable()
 export class WorkoutService {
@@ -117,14 +118,70 @@ export class WorkoutService {
     return results;
   }
 
-  async updateWorkout(id: number, payload: UpdateWorkoutDto) {
+  // Create workout
+  async createWorkout(payload: SaveWorkoutDto, user: ActiveUserData) {
     await this.dataSource.transaction(async (manager) => {
       const workoutRepo = manager.getRepository(Workout);
       const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
       const workoutMuscleRepo = manager.getRepository(WorkoutMuscle);
-      const workoutFocusTypeRepo = manager.getRepository(WorkoutFocusType);
-      const exerciseRepo = manager.getRepository(Exercise);
-      const muscleRepo = manager.getRepository(Muscle);
+
+      // Validate payload
+      const { focusType, uniqueMuscleIds } = await validateWorkoutSavePayload(
+        manager,
+        payload,
+      );
+
+      // Create workout main fields
+      const workout = workoutRepo.create({
+        name: payload.name,
+        duration: payload.duration,
+        workout_focus_type: focusType,
+        user: { id: user.sub },
+        created_by: user.username,
+        updated_by: user.username,
+      });
+
+      const savedWorkout = await workoutRepo.save(workout);
+
+      // Create workout muscles
+      if (uniqueMuscleIds.length > 0) {
+        const workoutMuscles = uniqueMuscleIds.map((muscleId) => ({
+          workout: { id: savedWorkout.id },
+          muscle: { id: muscleId },
+        }));
+
+        await workoutMuscleRepo.insert(workoutMuscles);
+      }
+
+      // Create workout exercises
+      const workoutExercises = payload.workoutExercises.map((item) => ({
+        order_index: item.orderIndex,
+        planned_sets: item.plannedSets,
+        planned_reps_range: item.plannedRepsRange,
+        planned_weight: item.plannedWeight,
+        planned_rest_time: item.plannedRestTime,
+        planned_duration: item.plannedDuration,
+        planned_distance: item.plannedDistance,
+        workout: { id: savedWorkout.id },
+        exercise: { id: item.exerciseId },
+      }));
+
+      await workoutExerciseRepo.insert(workoutExercises);
+    });
+
+    return { message: 'Workout created successfully' };
+  }
+
+  // Update workout
+  async updateWorkout(
+    id: number,
+    payload: SaveWorkoutDto,
+    user: ActiveUserData,
+  ) {
+    await this.dataSource.transaction(async (manager) => {
+      const workoutRepo = manager.getRepository(Workout);
+      const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
+      const workoutMuscleRepo = manager.getRepository(WorkoutMuscle);
 
       const workout = await workoutRepo.findOne({
         where: { id },
@@ -138,57 +195,15 @@ export class WorkoutService {
         throw new NotFoundException('Workout not found');
       }
 
-      const focusType = await workoutFocusTypeRepo.findOne({
-        where: { id: payload.workoutFocusTypeId },
-      });
+      // Validate payload
+      const { focusType, exerciseMap, uniqueMuscleIds } =
+        await validateWorkoutSavePayload(manager, payload);
 
-      if (!focusType) {
-        throw new BadRequestException('Workout focus type not found');
-      }
-
-      /* Validate part */
-      const uniqueExerciseIds = [
-        ...new Set(payload.workoutExercises.map((i) => i.exerciseId)),
-      ];
-
-      // Guard against duplicate exercise in same workout
-      if (uniqueExerciseIds.length !== payload.workoutExercises.length) {
-        throw new BadRequestException(
-          'Duplicate exerciseId is not allowed in the same workout',
-        );
-      }
-
-      // Validate exercise ids
-      const exercises = await exerciseRepo.find({
-        where: { id: In(uniqueExerciseIds) },
-      });
-
-      if (exercises.length !== uniqueExerciseIds.length) {
-        throw new BadRequestException('One or more exercises not found');
-      }
-
-      const exerciseMap = new Map(exercises.map((item) => [item.id, item]));
-
-      // Validate muscle ids
-      const uniqueMuscleIds = [...new Set(payload.targetMuscles)].sort(
-        (a, b) => a - b,
-      );
-
-      const muscles = uniqueMuscleIds.length
-        ? await muscleRepo.find({
-            where: { id: In(uniqueMuscleIds) },
-          })
-        : [];
-
-      if (muscles.length !== uniqueMuscleIds.length) {
-        throw new BadRequestException('One or more target muscles not found');
-      }
-
-      /* Update part */
       // Update workout main fields
       workout.name = payload.name;
       workout.duration = payload.duration;
       workout.workout_focus_type = focusType;
+      workout.updated_by = user.username;
 
       await workoutRepo.save(workout);
 

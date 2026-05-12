@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class UpdateWorkoutExerciseDto {
+export class SaveWorkoutExerciseDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -75,17 +75,18 @@ export class UpdateWorkoutExerciseDto {
   exerciseId: number;
 }
 
-export class UpdateWorkoutDto {
+export class SaveWorkoutDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   @ApiProperty()
   name: string;
 
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiProperty()
-  workoutFocusTypeId: number;
+  @ApiPropertyOptional()
+  workoutFocusTypeId: number | null;
 
   @IsArray()
   @Type(() => Number)
@@ -102,9 +103,9 @@ export class UpdateWorkoutDto {
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => UpdateWorkoutExerciseDto)
-  @ApiProperty({ type: [UpdateWorkoutExerciseDto] })
-  workoutExercises: UpdateWorkoutExerciseDto[];
+  @Type(() => SaveWorkoutExerciseDto)
+  @ApiProperty({ type: [SaveWorkoutExerciseDto] })
+  workoutExercises: SaveWorkoutExerciseDto[];
 }
 
 export class FinishWorkoutSessionSetDto {
