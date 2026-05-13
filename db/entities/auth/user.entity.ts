@@ -1,0 +1,50 @@
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
+import { Role } from './role.entity';
+import { UserProfile } from './user-profile.entity';
+import { BaseEntity } from '../shared/base.entity';
+import { Workout, WorkoutSchedule, WorkoutSession } from '../workout';
+import { WorkoutWeeklyPlan } from '../workout/workout/workout-weekly-plan.entity';
+
+@Entity({ schema: 'auth', name: 'user' })
+export class User extends BaseEntity {
+  @Column({ type: 'varchar', length: 50, unique: true })
+  username: string;
+
+  @Column({ type: 'varchar', length: 255, select: false })
+  password_hash: string;
+
+  @Column({ type: 'varchar', length: 100, unique: true })
+  email: string;
+
+  @Column({ type: 'smallint', default: 0 })
+  login_attempts: number;
+
+  @Column({ type: 'boolean', default: false })
+  is_reset_password: boolean;
+
+  @OneToOne(() => UserProfile, (profile) => profile.user)
+  profile: UserProfile;
+
+  @ManyToOne(() => Role, (role) => role.users, { nullable: false })
+  @JoinColumn({ name: 'role_id' })
+  role: Role;
+
+  @OneToMany(() => WorkoutSchedule, (schedule) => schedule.user)
+  schedules: WorkoutSchedule[];
+
+  @OneToMany(() => WorkoutWeeklyPlan, (plan) => plan.user)
+  workout_weekly_plans: WorkoutWeeklyPlan[];
+
+  @OneToMany(() => WorkoutSession, (session) => session.user)
+  sessions: WorkoutSession[];
+
+  @OneToMany(() => Workout, (workout) => workout.user)
+  workouts: Workout[];
+}
