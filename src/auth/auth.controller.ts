@@ -6,16 +6,15 @@ import { ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { LoginDto, RefreshDto, RegisterDto } from './dto/auth-body.dto';
 import {
+  AuthUserDto,
   LoginResponseDto,
   TokenPairResponseDto,
-  UserResponseDto,
 } from './dto/auth-response.dto';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 import { ActiveUser } from './decorators/active-user.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
-@Serialize(UserResponseDto)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -61,11 +60,11 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Get the currently authenticated user',
-    type: UserResponseDto,
+    type: AuthUserDto,
   })
-  @Serialize(UserResponseDto)
-  async loadUser(@ActiveUser('sub') userId: number) {
-    return this.authService.loadUser(userId);
+  @Serialize(AuthUserDto)
+  async getCurrentUser(@ActiveUser('sub') userId: number) {
+    return this.authService.getCurrentUser(userId);
   }
 
   @Auth(AuthType.PUBLIC)
