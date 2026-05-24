@@ -14,113 +14,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class SaveWorkoutExerciseDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @ApiProperty()
-  orderIndex: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @ApiPropertyOptional()
-  plannedSets: number | null;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  @ApiPropertyOptional()
-  plannedRepsRange: string | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  @ApiPropertyOptional()
-  plannedWeight: number | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @ApiPropertyOptional()
-  plannedRestTime: number | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @ApiPropertyOptional()
-  plannedDuration: number | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  @ApiPropertyOptional()
-  plannedDistance: number | null;
-
-  @Type(() => Number)
-  @IsInt()
-  @IsNotEmpty()
-  @ApiProperty()
-  exerciseId: number;
-}
-
-export class SaveWorkoutDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  @ApiProperty()
-  name: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @ApiPropertyOptional()
-  workoutFocusTypeId: number | null;
-
-  @IsArray()
-  @Type(() => Number)
-  @IsInt({ each: true })
-  @ApiProperty({ type: [Number] })
-  targetMuscles: number[];
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @ApiProperty()
-  duration: number;
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @ValidateNested({ each: true })
-  @Type(() => SaveWorkoutExerciseDto)
-  @ApiProperty({ type: [SaveWorkoutExerciseDto] })
-  workoutExercises: SaveWorkoutExerciseDto[];
-}
-
-export class FinishWorkoutSessionSetDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @ApiProperty()
-  setNumber: number;
-
+class WorkoutSetValueDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -148,6 +42,111 @@ export class FinishWorkoutSessionSetDto {
   @Min(0)
   @ApiPropertyOptional()
   duration: number | null;
+}
+
+class SaveWorkoutExerciseSetDto extends WorkoutSetValueDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  id: number | null;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiProperty()
+  setNumber: number;
+}
+
+export class SaveWorkoutExerciseDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  id: number | null;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiProperty()
+  orderIndex: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional()
+  restTime: number | null;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
+  @ApiProperty()
+  exerciseId: number;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => SaveWorkoutExerciseSetDto)
+  @ApiProperty({ type: [SaveWorkoutExerciseSetDto] })
+  sets: SaveWorkoutExerciseSetDto[];
+}
+
+export class SaveWorkoutDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @ApiProperty()
+  name: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  workoutFocusTypeId: number | null;
+
+  @IsArray()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @ApiProperty({ type: [Number] })
+  targetMuscles: number[];
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @ApiProperty()
+  duration: number;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => SaveWorkoutExerciseDto)
+  @ApiProperty({ type: [SaveWorkoutExerciseDto] })
+  workoutExercises: SaveWorkoutExerciseDto[];
+}
+
+export class FinishWorkoutSessionSetDto extends WorkoutSetValueDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  id: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  workoutExerciseSetId: number | null;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiProperty()
+  setNumber: number;
 
   @IsOptional()
   @IsDateString()
@@ -167,11 +166,19 @@ export class FinishWorkoutSessionExerciseDto {
   @ApiPropertyOptional()
   id: number | null;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @ApiPropertyOptional()
+  workoutExerciseId: number | null;
+
+  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @ApiProperty()
   exerciseId: number;
 
+  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(0)
@@ -183,7 +190,7 @@ export class FinishWorkoutSessionExerciseDto {
   @IsInt()
   @Min(0)
   @ApiPropertyOptional()
-  plannedRestTime: number | null;
+  restTime: number | null;
 
   @IsOptional()
   @IsDateString()
@@ -191,6 +198,7 @@ export class FinishWorkoutSessionExerciseDto {
   completedAt: string | null;
 
   @IsArray()
+  @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => FinishWorkoutSessionSetDto)
   @ApiProperty({ type: [FinishWorkoutSessionSetDto] })
@@ -198,6 +206,7 @@ export class FinishWorkoutSessionExerciseDto {
 }
 
 export class FinishWorkoutSessionDto {
+  @IsNotEmpty()
   @IsDateString()
   @ApiProperty()
   endedAt: string;
@@ -209,6 +218,7 @@ export class FinishWorkoutSessionDto {
   @ApiPropertyOptional()
   totalDuration: number | null;
 
+  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(0)
@@ -223,6 +233,7 @@ export class FinishWorkoutSessionDto {
   caloriesBurned: number | null;
 
   @IsArray()
+  @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => FinishWorkoutSessionExerciseDto)
   @ApiProperty({ type: [FinishWorkoutSessionExerciseDto] })

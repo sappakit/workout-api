@@ -10,6 +10,7 @@ import {
   Muscle,
   Workout,
   WorkoutExercise,
+  WorkoutExerciseSet,
   WorkoutFocusType,
   WorkoutMuscle,
   WorkoutSchedule,
@@ -95,6 +96,7 @@ export class WorkoutService {
       where: { id },
       relations: {
         workout_exercises: {
+          sets: true,
           exercise: {
             user_stats: true,
             muscles: { muscle: true },
@@ -123,6 +125,7 @@ export class WorkoutService {
     await this.dataSource.transaction(async (manager) => {
       const workoutRepo = manager.getRepository(Workout);
       const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
+      const workoutExerciseSetRepo = manager.getRepository(WorkoutExerciseSet);
       const workoutMuscleRepo = manager.getRepository(WorkoutMuscle);
 
       // Validate payload
@@ -156,17 +159,37 @@ export class WorkoutService {
       // Create workout exercises
       const workoutExercises = payload.workoutExercises.map((item) => ({
         order_index: item.orderIndex,
-        planned_sets: item.plannedSets,
-        planned_reps_range: item.plannedRepsRange,
-        planned_weight: item.plannedWeight,
-        planned_rest_time: item.plannedRestTime,
-        planned_duration: item.plannedDuration,
-        planned_distance: item.plannedDistance,
+        rest_time: item.restTime,
         workout: { id: savedWorkout.id },
         exercise: { id: item.exerciseId },
       }));
 
-      await workoutExerciseRepo.insert(workoutExercises);
+      const savedWorkoutExercises =
+        await workoutExerciseRepo.save(workoutExercises);
+
+      // Create workout exercise sets
+      const workoutExerciseSets = payload.workoutExercises.flatMap((item) => {
+        const savedWorkoutExercise = savedWorkoutExercises.find(
+          (savedItem) => savedItem.order_index === item.orderIndex,
+        );
+
+        if (!savedWorkoutExercise) {
+          return [];
+        }
+
+        return item.sets.map((set) => ({
+          workout_exercise: { id: savedWorkoutExercise.id },
+          set_number: set.setNumber,
+          reps: set.reps,
+          weight: set.weight,
+          distance: set.distance,
+          duration: set.duration,
+        }));
+      });
+
+      if (workoutExerciseSets.length > 0) {
+        await workoutExerciseSetRepo.insert(workoutExerciseSets);
+      }
     });
 
     return { message: 'Workout created successfully' };
@@ -181,6 +204,7 @@ export class WorkoutService {
     await this.dataSource.transaction(async (manager) => {
       const workoutRepo = manager.getRepository(Workout);
       const workoutExerciseRepo = manager.getRepository(WorkoutExercise);
+      const workoutExerciseSetRepo = manager.getRepository(WorkoutExerciseSet);
       const workoutMuscleRepo = manager.getRepository(WorkoutMuscle);
 
       const workout = await workoutRepo.findOne({
@@ -231,9 +255,12 @@ export class WorkoutService {
         }
       }
 
-      // Update workout exercises
+      // Load existing workout exercises with sets
       const existingWorkoutExercises = await workoutExerciseRepo.find({
         where: { workout: { id: workout.id } },
+        relations: {
+          sets: true,
+        },
       });
 
       const existingById = new Map(
@@ -243,7 +270,7 @@ export class WorkoutService {
       const incomingIds = new Set(
         payload.workoutExercises
           .map((item) => item.id)
-          .filter((id) => id != null),
+          .filter((id): id is number => id != null),
       );
 
       // Delete removed workout exercises
@@ -252,6 +279,13 @@ export class WorkoutService {
         .map((item) => item.id);
 
       if (toDeleteIds.length > 0) {
+        await workoutExerciseSetRepo
+          .createQueryBuilder()
+          .delete()
+          .from(WorkoutExerciseSet)
+          .where('workout_exercise_id IN (:...ids)', { ids: toDeleteIds })
+          .execute();
+
         await workoutExerciseRepo.delete(toDeleteIds);
       }
 
@@ -275,12 +309,7 @@ export class WorkoutService {
         }
 
         existing.order_index = item.orderIndex;
-        existing.planned_sets = item.plannedSets;
-        existing.planned_reps_range = item.plannedRepsRange;
-        existing.planned_weight = item.plannedWeight;
-        existing.planned_rest_time = item.plannedRestTime;
-        existing.planned_duration = item.plannedDuration;
-        existing.planned_distance = item.plannedDistance;
+        existing.rest_time = item.restTime;
         existing.exercise = exerciseMap.get(item.exerciseId)!;
 
         return existing;
@@ -290,21 +319,110 @@ export class WorkoutService {
         await workoutExerciseRepo.save(toUpdate);
       }
 
-      // Bulk create new workout exercises
+      // Sync sets for existing workout exercises
+      for (const item of updateItems) {
+        const existing = existingById.get(item.id);
+
+        if (!existing) {
+          throw new BadRequestException(
+            `Workout exercise with id ${item.id} not found`,
+          );
+        }
+
+        const existingSets = existing.sets ?? [];
+
+        const existingSetById = new Map(
+          existingSets.map((set) => [set.id, set]),
+        );
+
+        const incomingSetIds = new Set(
+          item.sets
+            .map((set) => set.id)
+            .filter((setId): setId is number => setId != null),
+        );
+
+        // Delete removed sets
+        const setIdsToDelete = existingSets
+          .filter((set) => !incomingSetIds.has(set.id))
+          .map((set) => set.id);
+
+        if (setIdsToDelete.length > 0) {
+          await workoutExerciseSetRepo.delete(setIdsToDelete);
+        }
+
+        // Split sets into update/create groups
+        const updateSetItems = item.sets.filter(
+          (set): set is typeof set & { id: number } => set.id != null,
+        );
+
+        const createSetItems = item.sets.filter((set) => set.id == null);
+
+        // Update existing sets
+        const setsToUpdate = updateSetItems.map((set) => {
+          const existingSet = existingSetById.get(set.id);
+
+          if (!existingSet) {
+            throw new BadRequestException(
+              `Workout exercise set with id ${set.id} not found`,
+            );
+          }
+
+          existingSet.set_number = set.setNumber;
+          existingSet.reps = set.reps;
+          existingSet.weight = set.weight;
+          existingSet.distance = set.distance;
+          existingSet.duration = set.duration;
+
+          return existingSet;
+        });
+
+        if (setsToUpdate.length > 0) {
+          await workoutExerciseSetRepo.save(setsToUpdate);
+        }
+
+        // Create new sets
+        if (createSetItems.length > 0) {
+          const newSets = createSetItems.map((set) => ({
+            workout_exercise: { id: existing.id },
+            set_number: set.setNumber,
+            reps: set.reps,
+            weight: set.weight,
+            distance: set.distance,
+            duration: set.duration,
+          }));
+
+          await workoutExerciseSetRepo.insert(newSets);
+        }
+      }
+
+      // Create new workout exercises
       if (createItems.length > 0) {
         const newWorkoutExercises = createItems.map((item) => ({
           order_index: item.orderIndex,
-          planned_sets: item.plannedSets,
-          planned_reps_range: item.plannedRepsRange,
-          planned_weight: item.plannedWeight,
-          planned_rest_time: item.plannedRestTime,
-          planned_duration: item.plannedDuration,
-          planned_distance: item.plannedDistance,
+          rest_time: item.restTime,
           workout: { id: workout.id },
           exercise: { id: item.exerciseId },
         }));
 
-        await workoutExerciseRepo.insert(newWorkoutExercises);
+        const savedNewWorkoutExercises =
+          await workoutExerciseRepo.save(newWorkoutExercises);
+
+        const newWorkoutExerciseSets = createItems.flatMap((item, index) => {
+          const savedWorkoutExercise = savedNewWorkoutExercises[index];
+
+          return item.sets.map((set) => ({
+            workout_exercise: { id: savedWorkoutExercise.id },
+            set_number: set.setNumber,
+            reps: set.reps,
+            weight: set.weight,
+            distance: set.distance,
+            duration: set.duration,
+          }));
+        });
+
+        if (newWorkoutExerciseSets.length > 0) {
+          await workoutExerciseSetRepo.insert(newWorkoutExerciseSets);
+        }
       }
     });
 
@@ -362,6 +480,7 @@ export class WorkoutService {
               muscles: { muscle: true },
               equipment_links: { equipment: true },
             },
+            sets: true,
           },
         },
       },
@@ -506,6 +625,9 @@ export class WorkoutService {
       const workoutSessionExerciseRepo = manager.getRepository(
         WorkoutSessionExercise,
       );
+      const workoutSessionExerciseSetRepo = manager.getRepository(
+        WorkoutSessionExerciseSet,
+      );
 
       // Load workout exercises in order
       const plannedExercises = await workoutExerciseRepo.find({
@@ -514,9 +636,13 @@ export class WorkoutService {
         },
         relations: {
           exercise: true,
+          sets: true,
         },
         order: {
           order_index: 'ASC',
+          sets: {
+            set_number: 'ASC',
+          },
         },
       });
 
@@ -536,23 +662,49 @@ export class WorkoutService {
 
       const savedSession = await workoutSessionRepo.save(session);
 
-      // Copy workout plan rows into session exercises as a snapshot
+      // Copy workout exercise rows into session exercises
       const sessionExerciseValues = plannedExercises.map((item) => ({
         session: { id: savedSession.id },
         exercise: { id: item.exercise.id },
+        workout_exercise: { id: item.id },
         order_index: item.order_index,
-
-        planned_sets: item.planned_sets,
-        planned_reps_range: item.planned_reps_range,
-        planned_weight: item.planned_weight,
-        planned_rest_time: item.planned_rest_time,
-        planned_duration: item.planned_duration,
-        planned_distance: item.planned_distance,
-
+        rest_time: item.rest_time,
         completed_at: null,
       }));
 
-      await workoutSessionExerciseRepo.insert(sessionExerciseValues);
+      const savedSessionExercises = await workoutSessionExerciseRepo.save(
+        sessionExerciseValues,
+      );
+
+      // Copy workout exercise set rows into session exercise sets
+      const sessionSetValues = plannedExercises.flatMap(
+        (plannedExercise, exerciseIndex) => {
+          const sessionExercise = savedSessionExercises[exerciseIndex];
+
+          if (!sessionExercise) {
+            return [];
+          }
+
+          return plannedExercise.sets.map((set) => ({
+            session_exercise: { id: sessionExercise.id },
+            workout_exercise_set: { id: set.id },
+            set_number: set.set_number,
+
+            // initial actual values copied from the workout plan
+            reps: set.reps,
+            weight: set.weight,
+            distance: set.distance,
+            duration: set.duration,
+
+            performed_at: null,
+            completed_at: null,
+          }));
+        },
+      );
+
+      if (sessionSetValues.length > 0) {
+        await workoutSessionExerciseSetRepo.insert(sessionSetValues);
+      }
 
       return await workoutSessionRepo.findOneOrFail({
         where: { id: savedSession.id },
@@ -692,7 +844,10 @@ export class WorkoutService {
         },
         relations: {
           exercise: true,
-          sets: true,
+          workout_exercise: true,
+          sets: {
+            workout_exercise_set: true,
+          },
         },
         order: {
           order_index: 'ASC',
@@ -886,12 +1041,17 @@ export class WorkoutService {
       }
 
       sessionExercise.order_index = incomingExercise.orderIndex;
-      sessionExercise.planned_rest_time = incomingExercise.plannedRestTime;
+      sessionExercise.rest_time = incomingExercise.restTime;
       sessionExercise.completed_at = incomingExercise.completedAt
         ? new Date(incomingExercise.completedAt)
         : null;
 
-      // TODO: Optional: allow changing exercise relation if needed
+      sessionExercise.workout_exercise =
+        incomingExercise.workoutExerciseId != null
+          ? ({ id: incomingExercise.workoutExerciseId } as WorkoutExercise)
+          : null;
+
+      // allow changing exercise relation
       if (sessionExercise.exercise.id !== incomingExercise.exerciseId) {
         const newExercise = await exerciseRepo.findOne({
           where: { id: incomingExercise.exerciseId },
@@ -920,7 +1080,12 @@ export class WorkoutService {
       sessionExercise = workoutSessionExerciseRepo.create({
         session: { id: session.id },
         exercise: { id: exercise.id },
+        workout_exercise:
+          incomingExercise.workoutExerciseId != null
+            ? { id: incomingExercise.workoutExerciseId }
+            : null,
         order_index: incomingExercise.orderIndex,
+        rest_time: incomingExercise.restTime,
         completed_at: incomingExercise.completedAt
           ? new Date(incomingExercise.completedAt)
           : null,
@@ -961,6 +1126,11 @@ export class WorkoutService {
       setEntity.weight = incomingSet.weight;
       setEntity.distance = incomingSet.distance;
       setEntity.duration = incomingSet.duration;
+      setEntity.workout_exercise_set =
+        incomingSet.workoutExerciseSetId != null
+          ? ({ id: incomingSet.workoutExerciseSetId } as WorkoutExerciseSet)
+          : null;
+
       setEntity.performed_at = incomingSet.performedAt
         ? new Date(incomingSet.performedAt)
         : null;
@@ -973,6 +1143,10 @@ export class WorkoutService {
       // CREATE new set
       setEntity = workoutSessionExerciseSetRepo.create({
         session_exercise: { id: sessionExercise.id },
+        workout_exercise_set:
+          incomingSet.workoutExerciseSetId != null
+            ? { id: incomingSet.workoutExerciseSetId }
+            : null,
         set_number: incomingSet.setNumber,
         reps: incomingSet.reps,
         weight: incomingSet.weight,

@@ -68,14 +68,22 @@ export class AuthService {
     return user;
   }
 
-  async loadUser(userId: number) {
+  async getCurrentUser(userId: number) {
     const user = await this.userRepo.findOne({
       where: { id: userId },
-      relations: { role: true },
+      relations: {
+        profile: true,
+        role: true,
+      },
       select: {
         id: true,
         username: true,
         email: true,
+        profile: {
+          first_name: true,
+          last_name: true,
+          image_url: true,
+        },
         role: {
           code: true,
           name: true,
@@ -174,22 +182,13 @@ export class AuthService {
       role: user.role.code,
     });
 
-    // Return response
-    const response = {
+    const authUser = await this.getCurrentUser(user.id);
+
+    return {
       accessToken,
       refreshToken,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: {
-          code: user.role.code,
-          name: user.role.name,
-        },
-      },
+      user: authUser,
     };
-
-    return response;
   }
 
   async logout(refreshToken: string) {
@@ -255,7 +254,7 @@ export class AuthService {
     }
 
     // get user detail
-    const user = await this.loadUser(session.userId);
+    const user = await this.getCurrentUser(session.userId);
 
     // rotate
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
