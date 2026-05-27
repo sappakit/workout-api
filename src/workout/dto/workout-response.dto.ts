@@ -95,6 +95,10 @@ export class WorkoutDto {
   @ApiProperty()
   name: string;
 
+  @Expose({ name: 'image_url' })
+  @ApiProperty()
+  imageUrl: string;
+
   @Expose()
   @ApiProperty()
   description: string;

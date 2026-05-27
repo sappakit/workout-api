@@ -63,15 +63,15 @@ export class WorkoutService {
   // Workouts
   async findAllWorkouts(query: PagingDto) {
     const options: FindManyOptions<Workout> = {
-      // relations: {
-      //   workout_focus_type: true,
-      //   muscles: {
-      //     muscle: true,
-      //   },
-      //   workout_exercises: {
-      //     exercise: true,
-      //   },
-      // },
+      relations: {
+        workout_focus_type: true,
+        muscles: {
+          muscle: true,
+        },
+        workout_exercises: {
+          exercise: true,
+        },
+      },
       order: { created_at: 'DESC' },
     };
 

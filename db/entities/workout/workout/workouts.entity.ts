@@ -16,6 +16,9 @@ export class Workout extends BaseEntity {
   name: string;
 
   @Column({ type: 'text', nullable: true })
+  image_url?: string;
+
+  @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'int', comment: 'seconds', nullable: true })
