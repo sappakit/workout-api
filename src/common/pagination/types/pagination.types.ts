@@ -1,5 +1,3 @@
-import { ObjectLiteral } from 'typeorm';
-
 export interface PaginationMeta {
   page: number;
   limit: number;
@@ -12,6 +10,15 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta;
 }
 
+export type FilterOperator = 'eq' | 'in';
+
+export type RepositoryFilterConfig = {
+  queryKey: string;
+  field: string;
+  operator?: FilterOperator;
+};
+
 export type PaginateRepositoryOptions = {
   searchFields?: string[];
+  filters?: RepositoryFilterConfig[];
 };

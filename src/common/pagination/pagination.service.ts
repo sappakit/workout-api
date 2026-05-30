@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
   FindManyOptions,
-  FindOptionsWhere,
-  ILike,
   ObjectLiteral,
   Repository,
   SelectQueryBuilder,
@@ -11,57 +9,16 @@ import { PagingDto } from '../dto/request.dto';
 import {
   PaginatedResponse,
   PaginateRepositoryOptions,
-} from './types/paginationtypes';
+} from './types/pagination.types';
+import {
+  buildFilterWhere,
+  buildFinalWhere,
+  buildPaginatedResponse,
+  buildSearchWhere,
+} from './helpers/pagination.helper';
 
 @Injectable()
 export class PaginationService {
-  private buildResponse<T extends ObjectLiteral>(
-    data: T[],
-    total: number,
-    page: number,
-    limit: number,
-  ): PaginatedResponse<T> {
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  private buildNestedWhere(
-    path: string,
-    value: unknown,
-  ): Record<string, unknown> {
-    const keys = path.split('.');
-
-    return keys.reduceRight<Record<string, unknown>>((acc, key, index) => {
-      if (index === keys.length - 1) {
-        return { [key]: value };
-      }
-
-      return { [key]: acc };
-    }, {});
-  }
-
-  private buildSearchWhere<T extends ObjectLiteral>(
-    search: string | undefined,
-    searchFields: string[] | undefined,
-  ): FindOptionsWhere<T>[] | undefined {
-    const trimmedSearch = search?.trim();
-
-    if (!trimmedSearch || !searchFields?.length) {
-      return undefined;
-    }
-
-    return searchFields.map((field) =>
-      this.buildNestedWhere(field, ILike(`%${trimmedSearch}%`)),
-    ) as FindOptionsWhere<T>[];
-  }
-
   async paginateRepository<T extends ObjectLiteral>(
     repository: Repository<T>,
     options: FindManyOptions<T>,
@@ -70,19 +27,26 @@ export class PaginationService {
   ): Promise<PaginatedResponse<T>> {
     const { page = 1, limit = 10, search } = query;
 
-    const searchWhere = this.buildSearchWhere<T>(
+    const searchWhere = buildSearchWhere<T>(
       search,
       paginateOptions?.searchFields,
     );
 
+    const filterWhere = buildFilterWhere<T>(
+      query as Record<string, unknown>,
+      paginateOptions?.filters,
+    );
+
+    const where = buildFinalWhere<T>(options.where, searchWhere, filterWhere);
+
     const [data, total] = await repository.findAndCount({
       ...options,
-      where: searchWhere ?? options.where,
+      where,
       skip: (page - 1) * limit,
       take: limit,
     });
 
-    return this.buildResponse(data, total, page, limit);
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async paginateQueryBuilder<T extends ObjectLiteral>(
@@ -96,6 +60,6 @@ export class PaginationService {
       .take(limit)
       .getManyAndCount();
 
-    return this.buildResponse(data, total, page, limit);
+    return buildPaginatedResponse(data, total, page, limit);
   }
 }

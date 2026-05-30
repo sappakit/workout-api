@@ -1,4 +1,4 @@
-import { DataSource, FindManyOptions, In, IsNull, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
 import {
   BadRequestException,
   Injectable,
@@ -7,7 +7,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Exercise,
-  Muscle,
   Workout,
   WorkoutExercise,
   WorkoutExerciseSet,
@@ -28,7 +27,10 @@ import {
   WorkoutScheduleStatus,
   WorkoutSessionStatus,
 } from './enums/workout.enum';
-import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
+import {
+  GetWorkoutScheduleQueryDto,
+  WorkoutQueryDto,
+} from './dto/workout-query.dto';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import {
   FinishWorkoutSessionDto,
@@ -38,6 +40,7 @@ import {
   UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
 import { validateWorkoutSavePayload } from './helpers/workout.helper';
+import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 
 @Injectable()
 export class WorkoutService {
@@ -61,7 +64,7 @@ export class WorkoutService {
   ) {}
 
   // Workouts
-  async findAllWorkouts(query: PagingDto) {
+  async findAllWorkouts(query: WorkoutQueryDto) {
     const options: FindManyOptions<Workout> = {
       relations: {
         workout_focus_type: true,
@@ -83,11 +86,27 @@ export class WorkoutService {
       // 'workout_exercises.exercise.name',
     ];
 
+    const filters: RepositoryFilterConfig[] = [
+      {
+        queryKey: 'focusTypeIds',
+        field: 'workout_focus_type.id',
+        operator: 'in',
+      },
+      {
+        queryKey: 'muscleIds',
+        field: 'muscles.muscle.id',
+        operator: 'in',
+      },
+    ];
+
     return this.paginationService.paginateRepository(
       this.workoutRepo,
       options,
       query,
-      { searchFields },
+      {
+        searchFields,
+        filters,
+      },
     );
   }
 
@@ -475,18 +494,19 @@ export class WorkoutService {
           workout_focus_type: true,
           muscles: { muscle: true },
           workout_exercises: {
-            exercise: {
-              user_stats: true,
-              muscles: { muscle: true },
-              equipment_links: { equipment: true },
-            },
+            exercise: true,
             sets: true,
           },
         },
       },
       order: {
         workout: {
-          workout_exercises: { order_index: 'ASC' },
+          workout_exercises: {
+            order_index: 'ASC',
+            sets: {
+              set_number: 'ASC',
+            },
+          },
         },
       },
     });
@@ -539,6 +559,12 @@ export class WorkoutService {
       relations: this.getWorkoutSessionDetailRelations(),
       order: {
         started_at: 'DESC',
+        session_exercises: {
+          order_index: 'ASC',
+          sets: {
+            set_number: 'ASC',
+          },
+        },
       },
     });
 

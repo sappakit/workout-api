@@ -15,7 +15,10 @@ import { ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
-import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
+import {
+  GetWorkoutScheduleQueryDto,
+  WorkoutQueryDto,
+} from './dto/workout-query.dto';
 import {
   WorkoutCurrentDto,
   WorkoutDto,
@@ -44,7 +47,7 @@ export class WorkoutController {
     type: WorkoutDto,
   })
   @Serialize(WorkoutDto)
-  async findAllWorkouts(@Query() query: PagingDto) {
+  async findAllWorkouts(@Query() query: WorkoutQueryDto) {
     return this.workoutService.findAllWorkouts(query);
   }
 
