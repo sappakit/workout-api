@@ -1,27 +1,26 @@
 import { Module } from '@nestjs/common';
-import { WorkoutService } from './workout.service';
-import { WorkoutController } from './workout.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Workout,
-  WorkoutExercise,
   WorkoutFocusType,
   WorkoutSchedule,
   WorkoutSession,
-  WorkoutSessionExercise,
   WorkoutWeeklyPlan,
 } from 'db/entities/workout';
 import { PaginationService } from 'src/common/pagination/pagination.service';
+import { ExerciseModule } from 'src/exercise/exercise.module';
+import { WorkoutController } from './workout.controller';
+import { WorkoutService } from './workout.service';
 
 @Module({
   imports: [
+    ExerciseModule,
     TypeOrmModule.forFeature([
       Workout,
       WorkoutSchedule,
       WorkoutWeeklyPlan,
       WorkoutFocusType,
       WorkoutSession,
-      WorkoutSessionExercise,
     ]),
   ],
   controllers: [WorkoutController],

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
   DifficultyLevel,
@@ -114,4 +114,93 @@ export class ExerciseDto {
   @Type(() => ExerciseEquipmentDto)
   @ApiProperty({ type: () => [ExerciseEquipmentDto] })
   equipmentLinks: ExerciseEquipmentDto[];
+}
+
+class WorkoutSetPerformanceDto {
+  @Expose()
+  @ApiProperty()
+  setNumber: number;
+
+  @Expose()
+  @ApiProperty({ nullable: true })
+  weight: number | null;
+
+  @Expose()
+  @ApiProperty({ nullable: true })
+  reps: number | null;
+
+  @Expose()
+  @ApiProperty({ nullable: true })
+  distance: number | null;
+
+  @Expose()
+  @ApiProperty({ nullable: true })
+  duration: number | null;
+}
+
+export class ExercisePerformanceSummaryDto {
+  @Expose()
+  @Type(() => WorkoutSetPerformanceDto)
+  @ApiProperty({ type: () => [WorkoutSetPerformanceDto] })
+  previousSets: WorkoutSetPerformanceDto[];
+
+  @Expose()
+  @Type(() => WorkoutSetPerformanceDto)
+  @ApiProperty({ type: () => [WorkoutSetPerformanceDto] })
+  bestSets: WorkoutSetPerformanceDto[];
+}
+
+export const exercisePerformanceByExerciseIdSchema = {
+  type: 'object',
+  additionalProperties: {
+    $ref: getSchemaPath(ExercisePerformanceSummaryDto),
+  },
+  example: {
+    1: {
+      previousSets: [
+        {
+          setNumber: 1,
+          weight: 80,
+          reps: 10,
+          distance: null,
+          duration: null,
+        },
+      ],
+      bestSets: [
+        {
+          setNumber: 1,
+          weight: 100,
+          reps: 8,
+          distance: null,
+          duration: null,
+        },
+      ],
+    },
+    2: {
+      previousSets: [
+        {
+          setNumber: 1,
+          weight: null,
+          reps: null,
+          distance: 5,
+          duration: 1800,
+        },
+      ],
+      bestSets: [
+        {
+          setNumber: 1,
+          weight: null,
+          reps: null,
+          distance: 10,
+          duration: 3600,
+        },
+      ],
+    },
+  },
+} as const;
+
+export class ExercisePerformanceByExerciseIdDto {
+  @Expose()
+  @ApiProperty(exercisePerformanceByExerciseIdSchema)
+  data: Record<number, ExercisePerformanceSummaryDto>;
 }

@@ -1,11 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import {
+  ExerciseDto,
+  exercisePerformanceByExerciseIdSchema,
+  ExercisePerformanceSummaryDto,
+  MuscleDto,
+} from 'src/exercise/dto/exercise-response.dto';
+import {
   WorkoutCurrentMode,
   WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
 } from '../enums/workout.enum';
-import { ExerciseDto, MuscleDto } from 'src/exercise/dto/exercise-response.dto';
 
 class WorkoutSetValueDto {
   @Expose()
@@ -246,6 +251,10 @@ export class WorkoutCurrentDto {
   @Type(() => WorkoutScheduleDto)
   @ApiProperty({ type: () => WorkoutScheduleDto })
   schedule: WorkoutScheduleDto | null;
+
+  @Expose()
+  @ApiProperty(exercisePerformanceByExerciseIdSchema)
+  performanceByExerciseId: Record<number, ExercisePerformanceSummaryDto>;
 }
 
 class WorkoutProgressSummaryDto {

@@ -1,4 +1,3 @@
-import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
 import {
   BadRequestException,
   Injectable,
@@ -18,20 +17,13 @@ import {
   WorkoutSessionExerciseSet,
   WorkoutWeeklyPlan,
 } from 'db/entities/workout';
+import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
+import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
+import { ExerciseService } from 'src/exercise/exercise.service';
+import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
 import { getISOWeekday, toUTCDateString } from 'utils/time.util';
-import {
-  WorkoutCurrentMode,
-  WorkoutProgressOverviewType,
-  WorkoutScheduleStatus,
-  WorkoutSessionStatus,
-} from './enums/workout.enum';
-import {
-  GetWorkoutScheduleQueryDto,
-  WorkoutQueryDto,
-} from './dto/workout-query.dto';
-import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import {
   FinishWorkoutSessionDto,
   FinishWorkoutSessionExerciseDto,
@@ -39,14 +31,24 @@ import {
   SaveWorkoutDto,
   UpdateWorkoutScheduleWorkoutDto,
 } from './dto/workout-body.dto';
+import {
+  GetWorkoutScheduleQueryDto,
+  WorkoutQueryDto,
+} from './dto/workout-query.dto';
+import {
+  WorkoutCurrentMode,
+  WorkoutProgressOverviewType,
+  WorkoutScheduleStatus,
+  WorkoutSessionStatus,
+} from './enums/workout.enum';
 import { validateWorkoutSavePayload } from './helpers/workout.helper';
-import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 
 @Injectable()
 export class WorkoutService {
   constructor(
     private dataSource: DataSource,
     private paginationService: PaginationService,
+    private readonly exerciseService: ExerciseService,
 
     // Repository
     @InjectRepository(Workout)
@@ -59,8 +61,6 @@ export class WorkoutService {
     private readonly workoutFocusTypeRepo: Repository<WorkoutFocusType>,
     @InjectRepository(WorkoutSession)
     private readonly workoutSessionRepo: Repository<WorkoutSession>,
-    @InjectRepository(WorkoutSessionExercise)
-    private readonly workoutSessionExerciseRepo: Repository<WorkoutSessionExercise>,
   ) {}
 
   // Workouts
@@ -569,10 +569,25 @@ export class WorkoutService {
     });
 
     if (currentSession) {
+      const exerciseIds = [
+        ...new Set(
+          currentSession.session_exercises
+            .map((sessionExercise) => sessionExercise.exercise?.id)
+            .filter((id): id is number => id != null),
+        ),
+      ];
+
+      const performanceByExerciseId =
+        await this.exerciseService.getExercisePerformanceSummary(
+          user,
+          exerciseIds,
+        );
+
       return {
         mode: WorkoutCurrentMode.IN_PROGRESS,
         session: currentSession,
         schedule: null,
+        performanceByExerciseId,
       };
     }
 

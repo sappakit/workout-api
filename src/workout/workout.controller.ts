@@ -8,13 +8,18 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { WorkoutService } from './workout.service';
+import { ApiResponse } from '@nestjs/swagger';
+import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { type ActiveUserData, AuthType } from 'src/auth/enums/auth.enum';
-import { ApiResponse } from '@nestjs/swagger';
-import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { PagingDto } from 'src/common/dto/request.dto';
-import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
+import { SuccessMessageDto } from 'src/common/dto/response.dto';
+import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
+import {
+  FinishWorkoutSessionDto,
+  SaveWorkoutDto,
+  UpdateWorkoutScheduleWorkoutDto,
+} from './dto/workout-body.dto';
 import {
   GetWorkoutScheduleQueryDto,
   WorkoutQueryDto,
@@ -27,12 +32,7 @@ import {
   WorkoutScheduleDto,
   WorkoutSessionDto,
 } from './dto/workout-response.dto';
-import {
-  FinishWorkoutSessionDto,
-  SaveWorkoutDto,
-  UpdateWorkoutScheduleWorkoutDto,
-} from './dto/workout-body.dto';
-import { SuccessMessageDto } from 'src/common/dto/response.dto';
+import { WorkoutService } from './workout.service';
 
 @Controller('workouts')
 export class WorkoutController {
