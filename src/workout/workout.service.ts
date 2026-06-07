@@ -81,9 +81,9 @@ export class WorkoutService {
     const searchFields = [
       'name',
       'description',
-      // 'workout_focus_type.name',
-      // 'muscles.muscle.name',
-      // 'workout_exercises.exercise.name',
+      'workout_focus_type.name',
+      'muscles.muscle.name',
+      'workout_exercises.exercise.name',
     ];
 
     const filters: RepositoryFilterConfig[] = [
@@ -99,6 +99,21 @@ export class WorkoutService {
       },
     ];
 
+    const sorts = [
+      {
+        queryKey: 'created_at',
+        field: 'created_at',
+      },
+      {
+        queryKey: 'name',
+        field: 'name',
+      },
+      {
+        queryKey: 'duration',
+        field: 'duration',
+      },
+    ];
+
     return this.paginationService.paginateRepository(
       this.workoutRepo,
       options,
@@ -106,18 +121,18 @@ export class WorkoutService {
       {
         searchFields,
         filters,
+        sorts,
       },
     );
   }
 
   async findOneWorkout(id: number) {
-    const results = await this.workoutRepo.findOne({
+    const result = await this.workoutRepo.findOne({
       where: { id },
       relations: {
         workout_exercises: {
           sets: true,
           exercise: {
-            user_stats: true,
             muscles: { muscle: true },
             equipment_links: {
               equipment: true,
@@ -128,15 +143,20 @@ export class WorkoutService {
         workout_focus_type: true,
       },
       order: {
-        workout_exercises: { order_index: 'ASC' },
+        workout_exercises: {
+          order_index: 'ASC',
+          sets: {
+            set_number: 'ASC',
+          },
+        },
       },
     });
 
-    if (!results) {
+    if (!result) {
       throw new NotFoundException('Workout not found');
     }
 
-    return results;
+    return result;
   }
 
   // Create workout

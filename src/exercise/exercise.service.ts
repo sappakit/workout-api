@@ -59,7 +59,12 @@ export class ExerciseService {
   }
 
   async findOneExercise(id: number) {
-    const results = await this.exerciseRepo.findOne({ where: { id } });
+    const results = await this.exerciseRepo.findOne({
+      where: { id },
+      relations: {
+        muscles: { muscle: true },
+      },
+    });
 
     if (!results) {
       throw new NotFoundException('Workout not found');

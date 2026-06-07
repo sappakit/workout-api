@@ -1,5 +1,6 @@
 import {
   FindManyOptions,
+  FindOptionsOrder,
   FindOptionsWhere,
   ILike,
   In,
@@ -8,6 +9,8 @@ import {
 import {
   PaginatedResponse,
   RepositoryFilterConfig,
+  RepositorySortConfig,
+  SortDirection,
 } from '../types/pagination.types';
 
 export function buildPaginatedResponse<T extends ObjectLiteral>(
@@ -96,6 +99,40 @@ export function buildFilterWhere<T extends ObjectLiteral>(
     }),
     {},
   ) as FindOptionsWhere<T>;
+}
+
+export function buildSortOrder<T extends ObjectLiteral>(
+  sortBy: string | undefined,
+  sorts: RepositorySortConfig[] | undefined,
+): FindOptionsOrder<T> | undefined {
+  const trimmedSortBy = sortBy?.trim();
+
+  if (!trimmedSortBy || !sorts?.length) {
+    return undefined;
+  }
+
+  const [queryKey, rawDirection] = trimmedSortBy.split(':');
+
+  if (!queryKey || !rawDirection) {
+    return undefined;
+  }
+
+  const direction = rawDirection.toUpperCase();
+
+  if (direction !== 'ASC' && direction !== 'DESC') {
+    return undefined;
+  }
+
+  const sortConfig = sorts.find((sort) => sort.queryKey === queryKey);
+
+  if (!sortConfig) {
+    return undefined;
+  }
+
+  return buildNestedWhere(
+    sortConfig.field,
+    direction as SortDirection,
+  ) as FindOptionsOrder<T>;
 }
 
 export function buildFinalWhere<T extends ObjectLiteral>(

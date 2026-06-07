@@ -7,15 +7,16 @@ import {
 } from 'typeorm';
 import { PagingDto } from '../dto/request.dto';
 import {
-  PaginatedResponse,
-  PaginateRepositoryOptions,
-} from './types/pagination.types';
-import {
   buildFilterWhere,
   buildFinalWhere,
   buildPaginatedResponse,
   buildSearchWhere,
+  buildSortOrder,
 } from './helpers/pagination.helper';
+import {
+  PaginatedResponse,
+  PaginateRepositoryOptions,
+} from './types/pagination.types';
 
 @Injectable()
 export class PaginationService {
@@ -25,7 +26,7 @@ export class PaginationService {
     query: PagingDto,
     paginateOptions?: PaginateRepositoryOptions,
   ): Promise<PaginatedResponse<T>> {
-    const { page = 1, limit = 10, search } = query;
+    const { page = 1, limit = 10, search, sortBy } = query;
 
     const searchWhere = buildSearchWhere<T>(
       search,
@@ -39,9 +40,12 @@ export class PaginationService {
 
     const where = buildFinalWhere<T>(options.where, searchWhere, filterWhere);
 
+    const sortOrder = buildSortOrder<T>(sortBy, paginateOptions?.sorts);
+
     const [data, total] = await repository.findAndCount({
       ...options,
       where,
+      order: sortOrder ?? options.order,
       skip: (page - 1) * limit,
       take: limit,
     });

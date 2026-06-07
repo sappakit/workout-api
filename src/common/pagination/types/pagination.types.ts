@@ -18,7 +18,15 @@ export type RepositoryFilterConfig = {
   operator?: FilterOperator;
 };
 
+export type SortDirection = 'ASC' | 'DESC';
+
+export type RepositorySortConfig = {
+  queryKey: string;
+  field: string;
+};
+
 export type PaginateRepositoryOptions = {
   searchFields?: string[];
   filters?: RepositoryFilterConfig[];
+  sorts?: RepositorySortConfig[];
 };
