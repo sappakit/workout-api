@@ -22,7 +22,7 @@ import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
 import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 import { ExerciseService } from 'src/exercise/exercise.service';
-import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
+import { Between, DataSource, FindManyOptions, In, Repository } from 'typeorm';
 import { getISOWeekday, toUTCDateString } from 'utils/time.util';
 import {
   FinishWorkoutSessionDto,
@@ -40,6 +40,7 @@ import {
   WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
   WorkoutSessionStatus,
+  WorkoutWeeklyPlanDayType,
 } from './enums/workout.enum';
 import { validateWorkoutSavePayload } from './helpers/workout.helper';
 
@@ -551,8 +552,20 @@ export class WorkoutService {
       },
     });
 
+    // No weekly plan row yet
     if (!weeklyPlan) {
-      return null; // Rest day
+      return null;
+    }
+
+    // Rest day or unassigned day
+    if (weeklyPlan.day_type !== WorkoutWeeklyPlanDayType.WORKOUT) {
+      return null;
+    }
+
+    if (!weeklyPlan.workout) {
+      throw new BadRequestException(
+        `Weekly plan for day ${dayOfWeek} is marked as workout but has no workout assigned.`,
+      );
     }
 
     // create schedule
@@ -565,12 +578,12 @@ export class WorkoutService {
       updated_by: user.username,
     });
 
-    await this.workoutScheduleRepo.save(newSchedule);
+    return await this.workoutScheduleRepo.save(newSchedule);
   }
 
-  // Get current workout state for today
+  // Get the current workout state for today
   async getCurrentWorkout(user: ActiveUserData) {
-    // use unfinished session first
+    // Use unfinished session first
     const currentSession = await this.workoutSessionRepo.findOne({
       where: {
         user: { id: user.sub },
@@ -608,29 +621,68 @@ export class WorkoutService {
         session: currentSession,
         schedule: null,
         performanceByExerciseId,
+        hasCompletedWorkoutToday: false,
       };
     }
 
-    // Create or get today's schedule from weekly plan
     const today = new Date();
 
-    const schedule = await this.getScheduleByDate(user, {
-      date: today.toISOString(),
+    // Check whether the user has completed any workout today
+    const startOfToday = new Date(today);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const endOfToday = new Date(today);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    const hasCompletedWorkoutToday = await this.workoutSessionRepo.exists({
+      where: {
+        user: { id: user.sub },
+        status: WorkoutSessionStatus.COMPLETED,
+        ended_at: Between(startOfToday, endOfToday),
+      },
     });
 
-    // No schedule means rest day
-    if (!schedule) {
+    // Check today's weekly plan
+    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        day_of_week: getISOWeekday(today),
+      },
+    });
+
+    // Today's a rest day
+    if (weeklyPlan?.day_type === WorkoutWeeklyPlanDayType.REST) {
       return {
         mode: WorkoutCurrentMode.REST_DAY,
         session: null,
         schedule: null,
+        performanceByExerciseId: {},
+        hasCompletedWorkoutToday,
       };
     }
 
+    // Create or get today's schedule from weekly plan
+    const schedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
+    });
+
+    if (schedule) {
+      return {
+        mode: WorkoutCurrentMode.SCHEDULED,
+        session: null,
+        schedule,
+        performanceByExerciseId: {},
+        hasCompletedWorkoutToday,
+      };
+    }
+
+    // No workout or rest day has been assigned for today
     return {
-      mode: WorkoutCurrentMode.SCHEDULED,
+      mode: WorkoutCurrentMode.UNASSIGNED,
       session: null,
-      schedule,
+      schedule: null,
+      performanceByExerciseId: {},
+      hasCompletedWorkoutToday,
     };
   }
 
@@ -876,10 +928,15 @@ export class WorkoutService {
         WorkoutSessionExerciseSet,
       );
       const exerciseRepo = manager.getRepository(Exercise);
+      const workoutScheduleRepo = manager.getRepository(WorkoutSchedule);
 
       // 1) Load session
       const session = await workoutSessionRepo.findOne({
         where: { id },
+        relations: {
+          user: true,
+          workout: true,
+        },
       });
 
       if (!session) {
@@ -1068,6 +1125,25 @@ export class WorkoutService {
       session.calories_burned = body.caloriesBurned ?? null;
 
       await workoutSessionRepo.save(session);
+
+      // 6) Update today's schedule if this completed session matches today's scheduled workout
+      if (session.workout) {
+        const finishedDate = toUTCDateString(session.ended_at);
+
+        const schedule = await workoutScheduleRepo.findOne({
+          where: {
+            user: { id: session.user.id },
+            workout: { id: session.workout.id },
+            scheduled_date: finishedDate,
+            status: WorkoutScheduleStatus.PLANNED,
+          },
+        });
+
+        if (schedule) {
+          schedule.status = WorkoutScheduleStatus.COMPLETED;
+          await workoutScheduleRepo.save(schedule);
+        }
+      }
     });
 
     return { message: 'Workout session finished successfully.' };

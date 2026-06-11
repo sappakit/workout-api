@@ -255,6 +255,10 @@ export class WorkoutCurrentDto {
   @Expose()
   @ApiProperty(exercisePerformanceByExerciseIdSchema)
   performanceByExerciseId: Record<number, ExercisePerformanceSummaryDto>;
+
+  @Expose()
+  @ApiProperty()
+  hasCompletedWorkoutToday: boolean;
 }
 
 class WorkoutProgressSummaryDto {
