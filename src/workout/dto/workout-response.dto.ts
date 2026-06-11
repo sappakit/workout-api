@@ -272,6 +272,10 @@ class WorkoutProgressSummaryDto {
 
   @Expose()
   @ApiProperty()
+  totalReps: number;
+
+  @Expose()
+  @ApiProperty()
   totalDurationSeconds: number;
 }
 
@@ -288,7 +292,15 @@ class WorkoutProgressVolumeTrendDto {
 class WorkoutProgressBestPerformanceDto {
   @Expose()
   @ApiProperty()
+  exerciseId: number;
+
+  @Expose()
+  @ApiProperty()
   exerciseName: string;
+
+  @Expose()
+  @ApiProperty({ nullable: true })
+  exerciseImageUrl: string | null;
 
   @Expose()
   @ApiProperty()
@@ -301,6 +313,14 @@ class WorkoutProgressBestPerformanceDto {
   @Expose()
   @ApiProperty({ example: '60 kg x 10 reps' })
   bestSetLabel: string;
+
+  @Expose()
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' })
+  completedAt: Date | null;
+
+  @Expose()
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' })
+  setCompletedAt: Date | null;
 }
 
 export class WorkoutProgressOverviewDto {

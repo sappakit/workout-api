@@ -1300,6 +1300,7 @@ export class WorkoutService {
       workoutsCompleted: sessions.length,
       totalVolumeKg: this.getTotalVolumeKg(sessions),
       completedSets: this.getCompletedSetCount(sessions),
+      totalReps: this.getTotalReps(sessions),
       totalDurationSeconds: sessions.reduce((total, session) => {
         return total + (session.total_duration ?? 0);
       }, 0),
@@ -1339,10 +1340,14 @@ export class WorkoutService {
     const performanceMap = new Map<
       number,
       {
+        exerciseId: number;
         exerciseName: string;
+        exerciseImageUrl: string | null;
         bestWeightKg: number;
         bestSetVolumeKg: number;
         bestSetLabel: string;
+        completedAt: Date | null;
+        setCompletedAt: Date | null;
       }
     >();
 
@@ -1350,6 +1355,7 @@ export class WorkoutService {
       for (const sessionExercise of session.session_exercises ?? []) {
         const exerciseId = sessionExercise.exercise?.id;
         const exerciseName = sessionExercise.exercise?.name;
+        const exerciseImageUrl = sessionExercise.exercise?.image_url ?? null;
 
         if (!exerciseId || !exerciseName) continue;
 
@@ -1365,10 +1371,14 @@ export class WorkoutService {
 
           if (!current) {
             performanceMap.set(exerciseId, {
+              exerciseId,
               exerciseName,
+              exerciseImageUrl,
               bestWeightKg: weight,
               bestSetVolumeKg: setVolumeKg,
               bestSetLabel: `${this.formatNumber(weight)} kg x ${reps} reps`,
+              completedAt: session.ended_at ?? null,
+              setCompletedAt: set.completed_at,
             });
 
             continue;
@@ -1378,7 +1388,9 @@ export class WorkoutService {
           const bestWeightKg = Math.max(current.bestWeightKg, weight);
 
           performanceMap.set(exerciseId, {
+            exerciseId,
             exerciseName,
+            exerciseImageUrl: current.exerciseImageUrl ?? exerciseImageUrl,
             bestWeightKg,
             bestSetVolumeKg: isBetterVolume
               ? setVolumeKg
@@ -1386,14 +1398,20 @@ export class WorkoutService {
             bestSetLabel: isBetterVolume
               ? `${this.formatNumber(weight)} kg x ${reps} reps`
               : current.bestSetLabel,
+            completedAt: isBetterVolume
+              ? (session.ended_at ?? null)
+              : current.completedAt,
+            setCompletedAt: isBetterVolume
+              ? set.completed_at
+              : current.setCompletedAt,
           });
         }
       }
     }
 
-    return Array.from(performanceMap.values())
-      .sort((a, b) => b.bestSetVolumeKg - a.bestSetVolumeKg)
-      .slice(0, 5);
+    return Array.from(performanceMap.values()).sort(
+      (a, b) => b.bestSetVolumeKg - a.bestSetVolumeKg,
+    );
   }
 
   private getTotalVolumeKg(sessions: WorkoutSession[]) {
@@ -1435,6 +1453,29 @@ export class WorkoutService {
       );
 
       return total + sessionCompletedSets;
+    }, 0);
+  }
+
+  private getTotalReps(sessions: WorkoutSession[]) {
+    return sessions.reduce((total, session) => {
+      const sessionReps = (session.session_exercises ?? []).reduce(
+        (exerciseTotal, sessionExercise) => {
+          const exerciseReps = (sessionExercise.sets ?? []).reduce(
+            (setTotal, set) => {
+              if (!set.completed_at) return setTotal;
+              if (set.reps == null) return setTotal;
+
+              return setTotal + Number(set.reps);
+            },
+            0,
+          );
+
+          return exerciseTotal + exerciseReps;
+        },
+        0,
+      );
+
+      return total + sessionReps;
     }, 0);
   }
 
