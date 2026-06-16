@@ -10,6 +10,7 @@ import {
   WorkoutCurrentMode,
   WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
+  WorkoutWeeklyPlanDayType,
 } from '../enums/workout.enum';
 
 class WorkoutSetValueDto {
@@ -354,4 +355,19 @@ export class WorkoutProgressOverviewDto {
   @Type(() => WorkoutProgressBestPerformanceDto)
   @ApiProperty({ type: () => [WorkoutProgressBestPerformanceDto] })
   bestPerformances: WorkoutProgressBestPerformanceDto[];
+}
+
+export class WorkoutTodayOverviewDto {
+  @Expose()
+  @ApiProperty({ enum: WorkoutWeeklyPlanDayType })
+  todayPlanType: WorkoutWeeklyPlanDayType;
+
+  @Expose()
+  @Type(() => WorkoutScheduleDto)
+  @ApiProperty({ type: () => WorkoutScheduleDto })
+  schedule: WorkoutScheduleDto | null;
+
+  @Expose()
+  @ApiProperty()
+  hasCompletedWorkoutToday: boolean;
 }

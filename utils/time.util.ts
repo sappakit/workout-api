@@ -12,3 +12,16 @@ export function getISOWeekday(date: Date): number {
   const day = date.getUTCDay();
   return day === 0 ? 7 : day;
 }
+
+export function getUtcDayRange(date = new Date()) {
+  const startOfDay = new Date(date);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  return {
+    startOfDay,
+    endOfDay,
+  };
+}

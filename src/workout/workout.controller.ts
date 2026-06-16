@@ -31,6 +31,7 @@ import {
   WorkoutProgressOverviewDto,
   WorkoutScheduleDto,
   WorkoutSessionDto,
+  WorkoutTodayOverviewDto,
 } from './dto/workout-response.dto';
 import { WorkoutService } from './workout.service';
 
@@ -138,6 +139,19 @@ export class WorkoutController {
   @Serialize(WorkoutCurrentDto)
   async getCurrentWorkout(@ActiveUser() user: ActiveUserData) {
     return this.workoutService.getCurrentWorkout(user);
+  }
+
+  // Get today's workout overview for home screen banner
+  @Auth(AuthType.USER)
+  @Get('today/overview')
+  @ApiResponse({
+    status: 200,
+    description: "Get today's workout context",
+    type: WorkoutTodayOverviewDto,
+  })
+  @Serialize(WorkoutTodayOverviewDto)
+  async getTodayOverview(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getTodayOverview(user);
   }
 
   // Get user workout session history

@@ -23,7 +23,11 @@ import { PaginationService } from 'src/common/pagination/pagination.service';
 import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 import { ExerciseService } from 'src/exercise/exercise.service';
 import { Between, DataSource, FindManyOptions, In, Repository } from 'typeorm';
-import { getISOWeekday, toUTCDateString } from 'utils/time.util';
+import {
+  getISOWeekday,
+  getUtcDayRange,
+  toUTCDateString,
+} from 'utils/time.util';
 import {
   FinishWorkoutSessionDto,
   FinishWorkoutSessionExerciseDto,
@@ -625,63 +629,108 @@ export class WorkoutService {
       };
     }
 
-    const today = new Date();
+    const todayContext = await this.getTodayOverview(user);
 
-    // Check whether the user has completed any workout today
-    const startOfToday = new Date(today);
-    startOfToday.setUTCHours(0, 0, 0, 0);
-
-    const endOfToday = new Date(today);
-    endOfToday.setUTCHours(23, 59, 59, 999);
-
-    const hasCompletedWorkoutToday = await this.workoutSessionRepo.exists({
-      where: {
-        user: { id: user.sub },
-        status: WorkoutSessionStatus.COMPLETED,
-        ended_at: Between(startOfToday, endOfToday),
-      },
-    });
-
-    // Check today's weekly plan
-    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
-      where: {
-        user: { id: user.sub },
-        day_of_week: getISOWeekday(today),
-      },
-    });
-
-    // Today's a rest day
-    if (weeklyPlan?.day_type === WorkoutWeeklyPlanDayType.REST) {
+    if (todayContext.todayPlanType === WorkoutWeeklyPlanDayType.REST) {
       return {
         mode: WorkoutCurrentMode.REST_DAY,
         session: null,
         schedule: null,
         performanceByExerciseId: {},
-        hasCompletedWorkoutToday,
+        hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
       };
     }
 
-    // Create or get today's schedule from weekly plan
-    const schedule = await this.getScheduleByDate(user, {
-      date: today.toISOString(),
-    });
-
-    if (schedule) {
+    if (
+      todayContext.todayPlanType === WorkoutWeeklyPlanDayType.WORKOUT &&
+      todayContext.schedule
+    ) {
       return {
         mode: WorkoutCurrentMode.SCHEDULED,
         session: null,
-        schedule,
+        schedule: todayContext.schedule,
         performanceByExerciseId: {},
-        hasCompletedWorkoutToday,
+        hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
       };
     }
 
-    // No workout or rest day has been assigned for today
     return {
       mode: WorkoutCurrentMode.UNASSIGNED,
       session: null,
       schedule: null,
       performanceByExerciseId: {},
+      hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
+    };
+  }
+
+  private async getHasCompletedWorkoutToday(
+    user: ActiveUserData,
+    today = new Date(),
+  ) {
+    const { startOfDay, endOfDay } = getUtcDayRange(today);
+
+    return this.workoutSessionRepo.exists({
+      where: {
+        user: { id: user.sub },
+        status: WorkoutSessionStatus.COMPLETED,
+        ended_at: Between(startOfDay, endOfDay),
+      },
+    });
+  }
+
+  // Get today's workout overview
+  async getTodayOverview(user: ActiveUserData) {
+    const today = new Date();
+
+    const hasCompletedWorkoutToday = await this.getHasCompletedWorkoutToday(
+      user,
+      today,
+    );
+
+    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        day_of_week: getISOWeekday(today),
+      },
+      relations: {
+        workout: true,
+      },
+    });
+
+    if (
+      !weeklyPlan ||
+      weeklyPlan.day_type === WorkoutWeeklyPlanDayType.UNASSIGNED
+    ) {
+      return {
+        todayPlanType: WorkoutWeeklyPlanDayType.UNASSIGNED,
+        schedule: null,
+        hasCompletedWorkoutToday,
+      };
+    }
+
+    if (weeklyPlan.day_type === WorkoutWeeklyPlanDayType.REST) {
+      return {
+        todayPlanType: WorkoutWeeklyPlanDayType.REST,
+        schedule: null,
+        hasCompletedWorkoutToday,
+      };
+    }
+
+    const schedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
+    });
+
+    if (!schedule) {
+      return {
+        todayPlanType: WorkoutWeeklyPlanDayType.UNASSIGNED,
+        schedule: null,
+        hasCompletedWorkoutToday,
+      };
+    }
+
+    return {
+      todayPlanType: WorkoutWeeklyPlanDayType.WORKOUT,
+      schedule,
       hasCompletedWorkoutToday,
     };
   }
