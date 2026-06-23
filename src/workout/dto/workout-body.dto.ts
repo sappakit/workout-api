@@ -1,18 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayNotEmpty,
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
-  IsInt,
-  Min,
+  Max,
   MaxLength,
-  IsNumber,
-  IsNotEmpty,
-  IsArray,
-  ArrayNotEmpty,
+  Min,
+  ValidateIf,
   ValidateNested,
-  IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { WorkoutWeeklyPlanDayType } from '../enums/workout.enum';
 
 class WorkoutSetValueDto {
   @IsOptional()
@@ -245,4 +251,45 @@ export class UpdateWorkoutScheduleWorkoutDto {
   @IsInt()
   @ApiProperty({ example: 1 })
   workoutId: number;
+}
+
+export class UpdateWorkoutWeeklyPlanDayDto {
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  @ApiProperty({
+    example: 1,
+    description: '1 = Monday, 7 = Sunday',
+  })
+  dayOfWeek: number;
+
+  @IsEnum(WorkoutWeeklyPlanDayType)
+  @ApiProperty({
+    enum: WorkoutWeeklyPlanDayType,
+    example: WorkoutWeeklyPlanDayType.WORKOUT,
+  })
+  dayType: WorkoutWeeklyPlanDayType;
+
+  @ValidateIf((dto) => dto.dayType === WorkoutWeeklyPlanDayType.WORKOUT)
+  @IsNotEmpty()
+  @IsInt()
+  @ApiPropertyOptional({
+    example: 1,
+    nullable: true,
+    description:
+      'Required when dayType is WORKOUT. Ignored for REST/UNASSIGNED.',
+  })
+  workoutId?: number | null;
+}
+
+export class UpdateWorkoutWeeklyPlanDto {
+  @IsArray()
+  @ArrayMinSize(7)
+  @ArrayMaxSize(7)
+  @ValidateNested({ each: true })
+  @Type(() => UpdateWorkoutWeeklyPlanDayDto)
+  @ApiProperty({
+    type: [UpdateWorkoutWeeklyPlanDayDto],
+  })
+  days: UpdateWorkoutWeeklyPlanDayDto[];
 }

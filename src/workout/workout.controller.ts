@@ -19,6 +19,7 @@ import {
   FinishWorkoutSessionDto,
   SaveWorkoutDto,
   UpdateWorkoutScheduleWorkoutDto,
+  UpdateWorkoutWeeklyPlanDto,
 } from './dto/workout-body.dto';
 import {
   GetWorkoutScheduleQueryDto,
@@ -32,6 +33,7 @@ import {
   WorkoutScheduleDto,
   WorkoutSessionDto,
   WorkoutTodayOverviewDto,
+  WorkoutWeeklyPlanDto,
 } from './dto/workout-response.dto';
 import { WorkoutService } from './workout.service';
 
@@ -79,6 +81,35 @@ export class WorkoutController {
   @Serialize(WorkoutFocusTypeDto)
   async findAllWorkoutFocusTypes(@Query() query: PagingDto) {
     return this.workoutService.findAllWorkoutFocusTypes(query);
+  }
+
+  // Get weekly plan
+  @Auth(AuthType.USER)
+  @Get('weekly-plan')
+  @ApiResponse({
+    status: 200,
+    description: 'Get weekly workout plan',
+    type: WorkoutWeeklyPlanDto,
+  })
+  @Serialize(WorkoutWeeklyPlanDto)
+  async getWeeklyPlan(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getWeeklyPlan(user);
+  }
+
+  // Update weekly plan
+  @Auth(AuthType.USER)
+  @Patch('weekly-plan')
+  @ApiResponse({
+    status: 200,
+    description: 'Update weekly workout plan',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async updateWeeklyPlan(
+    @ActiveUser() user: ActiveUserData,
+    @Body() body: UpdateWorkoutWeeklyPlanDto,
+  ) {
+    return this.workoutService.updateWeeklyPlan(user, body);
   }
 
   // Schedule

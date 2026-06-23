@@ -34,6 +34,7 @@ import {
   FinishWorkoutSessionSetDto,
   SaveWorkoutDto,
   UpdateWorkoutScheduleWorkoutDto,
+  UpdateWorkoutWeeklyPlanDto,
 } from './dto/workout-body.dto';
 import {
   GetWorkoutScheduleQueryDto,
@@ -629,28 +630,28 @@ export class WorkoutService {
       };
     }
 
-    const todayContext = await this.getTodayOverview(user);
+    // Get today's workout overview
+    const todayOverview = await this.getTodayOverview(user);
 
-    if (todayContext.todayPlanType === WorkoutWeeklyPlanDayType.REST) {
+    // Use existing schedule
+    if (todayOverview.schedule) {
+      return {
+        mode: WorkoutCurrentMode.SCHEDULED,
+        session: null,
+        schedule: todayOverview.schedule,
+        performanceByExerciseId: {},
+        hasCompletedWorkoutToday: todayOverview.hasCompletedWorkoutToday,
+      };
+    }
+
+    // If no schedule exists, then use today's weekly plan type
+    if (todayOverview.todayPlanType === WorkoutWeeklyPlanDayType.REST) {
       return {
         mode: WorkoutCurrentMode.REST_DAY,
         session: null,
         schedule: null,
         performanceByExerciseId: {},
-        hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
-      };
-    }
-
-    if (
-      todayContext.todayPlanType === WorkoutWeeklyPlanDayType.WORKOUT &&
-      todayContext.schedule
-    ) {
-      return {
-        mode: WorkoutCurrentMode.SCHEDULED,
-        session: null,
-        schedule: todayContext.schedule,
-        performanceByExerciseId: {},
-        hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
+        hasCompletedWorkoutToday: todayOverview.hasCompletedWorkoutToday,
       };
     }
 
@@ -659,7 +660,7 @@ export class WorkoutService {
       session: null,
       schedule: null,
       performanceByExerciseId: {},
-      hasCompletedWorkoutToday: todayContext.hasCompletedWorkoutToday,
+      hasCompletedWorkoutToday: todayOverview.hasCompletedWorkoutToday,
     };
   }
 
@@ -687,6 +688,20 @@ export class WorkoutService {
       today,
     );
 
+    // Get existing schedule first
+    const schedule = await this.getScheduleByDate(user, {
+      date: today.toISOString(),
+    });
+
+    if (schedule) {
+      return {
+        todayPlanType: WorkoutWeeklyPlanDayType.WORKOUT,
+        schedule,
+        hasCompletedWorkoutToday,
+      };
+    }
+
+    // If no schedule exists, use today's weekly plan type
     const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
       where: {
         user: { id: user.sub },
@@ -716,21 +731,9 @@ export class WorkoutService {
       };
     }
 
-    const schedule = await this.getScheduleByDate(user, {
-      date: today.toISOString(),
-    });
-
-    if (!schedule) {
-      return {
-        todayPlanType: WorkoutWeeklyPlanDayType.UNASSIGNED,
-        schedule: null,
-        hasCompletedWorkoutToday,
-      };
-    }
-
     return {
-      todayPlanType: WorkoutWeeklyPlanDayType.WORKOUT,
-      schedule,
+      todayPlanType: WorkoutWeeklyPlanDayType.UNASSIGNED,
+      schedule: null,
       hasCompletedWorkoutToday,
     };
   }
@@ -1655,5 +1658,147 @@ export class WorkoutService {
     return this.getScheduleByDate(user, {
       date: schedule.scheduled_date,
     });
+  }
+
+  // Get weekly plan
+  async getWeeklyPlan(user: ActiveUserData) {
+    const weeklyPlans = await this.workoutWeeklyPlanRepo.find({
+      where: {
+        user: { id: user.sub },
+      },
+      relations: {
+        workout: {
+          workout_exercises: true,
+          muscles: true,
+          workout_focus_type: true,
+        },
+      },
+      order: {
+        day_of_week: 'ASC',
+      },
+    });
+
+    const weeklyPlanByDay = new Map(
+      weeklyPlans.map((plan) => [plan.day_of_week, plan]),
+    );
+
+    const days = [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
+      const plan = weeklyPlanByDay.get(dayOfWeek);
+
+      if (!plan) {
+        return {
+          id: null,
+          day_of_week: dayOfWeek,
+          day_type: WorkoutWeeklyPlanDayType.UNASSIGNED,
+          workout: null,
+        };
+      }
+
+      return plan;
+    });
+
+    return { days };
+  }
+
+  // Update weekly plan
+  async updateWeeklyPlan(
+    user: ActiveUserData,
+    dto: UpdateWorkoutWeeklyPlanDto,
+  ) {
+    const days = dto.days;
+
+    const dayOfWeeks = days.map((day) => day.dayOfWeek);
+    const uniqueDayOfWeeks = new Set(dayOfWeeks);
+
+    if (uniqueDayOfWeeks.size !== 7) {
+      throw new BadRequestException('Weekly plan contains duplicate days');
+    }
+
+    const expectedDays = [1, 2, 3, 4, 5, 6, 7];
+    const hasAllDays = expectedDays.every((day) => uniqueDayOfWeeks.has(day));
+
+    if (!hasAllDays) {
+      throw new BadRequestException('Weekly plan must contain days 1 to 7');
+    }
+
+    const workoutDays = days.filter(
+      (day) => day.dayType === WorkoutWeeklyPlanDayType.WORKOUT,
+    );
+
+    const workoutIds = [
+      ...new Set(
+        workoutDays
+          .map((day) => day.workoutId)
+          .filter((workoutId): workoutId is number => !!workoutId),
+      ),
+    ];
+
+    const workouts =
+      workoutIds.length > 0
+        ? await this.workoutRepo.find({
+            where: [
+              // User's own workout
+              {
+                id: In(workoutIds),
+                user: { id: user.sub },
+              },
+              // Public workout plan
+              {
+                id: In(workoutIds),
+                is_public: true,
+              },
+            ],
+          })
+        : [];
+
+    const workoutById = new Map(
+      workouts.map((workout) => [workout.id, workout]),
+    );
+
+    for (const day of workoutDays) {
+      if (!day.workoutId || !workoutById.has(day.workoutId)) {
+        throw new NotFoundException(
+          `Workout not found for day ${day.dayOfWeek}`,
+        );
+      }
+    }
+
+    const existingPlans = await this.workoutWeeklyPlanRepo.find({
+      where: {
+        user: { id: user.sub },
+        day_of_week: In(dayOfWeeks),
+      },
+    });
+
+    const existingPlanByDay = new Map(
+      existingPlans.map((plan) => [plan.day_of_week, plan]),
+    );
+
+    const plansToSave = days.map((dayDto) => {
+      const existingPlan = existingPlanByDay.get(dayDto.dayOfWeek);
+
+      const workout =
+        dayDto.dayType === WorkoutWeeklyPlanDayType.WORKOUT && dayDto.workoutId
+          ? workoutById.get(dayDto.workoutId)!
+          : null;
+
+      const plan =
+        existingPlan ??
+        this.workoutWeeklyPlanRepo.create({
+          day_of_week: dayDto.dayOfWeek,
+          user: { id: user.sub },
+          created_by: user.username,
+        });
+
+      plan.day_type = dayDto.dayType;
+      plan.workout = workout;
+      plan.updated_by = user.username;
+
+      return plan;
+    });
+
+    await this.workoutWeeklyPlanRepo.save(plansToSave);
+
+    return { message: 'Weekly plan updated successfully' };
   }
 }

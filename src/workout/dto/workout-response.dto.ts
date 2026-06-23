@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import {
   ExerciseDto,
@@ -370,4 +370,39 @@ export class WorkoutTodayOverviewDto {
   @Expose()
   @ApiProperty()
   hasCompletedWorkoutToday: boolean;
+}
+
+export class WorkoutWeeklyPlanDayDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose({ name: 'day_of_week' })
+  @ApiProperty({
+    example: 1,
+    description: '1 = Monday, 7 = Sunday',
+  })
+  dayOfWeek: number;
+
+  @Expose({ name: 'day_type' })
+  @ApiProperty({
+    enum: WorkoutWeeklyPlanDayType,
+    example: WorkoutWeeklyPlanDayType.WORKOUT,
+  })
+  dayType: WorkoutWeeklyPlanDayType;
+
+  @Expose()
+  @Type(() => WorkoutDto)
+  @ApiPropertyOptional({
+    type: () => WorkoutDto,
+    nullable: true,
+  })
+  workout: WorkoutDto | null;
+}
+
+export class WorkoutWeeklyPlanDto {
+  @Expose()
+  @Type(() => WorkoutWeeklyPlanDayDto)
+  @ApiProperty({ type: () => [WorkoutWeeklyPlanDayDto] })
+  days: WorkoutWeeklyPlanDayDto[];
 }
