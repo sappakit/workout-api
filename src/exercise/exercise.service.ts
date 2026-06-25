@@ -10,9 +10,13 @@ import {
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
+import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 import { WorkoutSessionStatus } from 'src/workout/enums/workout.enum';
 import { FindManyOptions, Repository } from 'typeorm';
-import { GetExercisesPerformanceQueryDto } from './dto/exercise-query.dto';
+import {
+  ExerciseQueryDto,
+  GetExercisesPerformanceQueryDto,
+} from './dto/exercise-query.dto';
 import { PerformanceByExerciseId } from './types/exercise.types';
 
 @Injectable()
@@ -34,7 +38,7 @@ export class ExerciseService {
   ) {}
 
   // Exercises
-  async findAllExercises(query: PagingDto) {
+  async findAllExercises(query: ExerciseQueryDto) {
     const options: FindManyOptions<Exercise> = {
       relations: {
         muscles: { muscle: true },
@@ -48,13 +52,42 @@ export class ExerciseService {
       'exercise_type',
       'difficulty_level',
       'muscles.muscle.name',
+      // 'equipment_links.equipment.name',
+    ];
+
+    const filters: RepositoryFilterConfig[] = [
+      {
+        queryKey: 'exerciseTypes',
+        field: 'exercise_type',
+        operator: 'in',
+      },
+      {
+        queryKey: 'muscleIds',
+        field: 'muscles.muscle.id',
+        operator: 'in',
+      },
+    ];
+
+    const sorts = [
+      {
+        queryKey: 'created_at',
+        field: 'created_at',
+      },
+      {
+        queryKey: 'name',
+        field: 'name',
+      },
     ];
 
     return this.paginationService.paginateRepository(
       this.exerciseRepo,
       options,
       query,
-      { searchFields },
+      {
+        searchFields,
+        filters,
+        sorts,
+      },
     );
   }
 
