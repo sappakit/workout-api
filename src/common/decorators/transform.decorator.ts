@@ -34,3 +34,21 @@ export function ToStringArray() {
       .filter(Boolean);
   });
 }
+
+export function ToBoolean() {
+  return Transform(({ value }) => {
+    if (isEmptyValue(value)) {
+      return undefined;
+    }
+
+    if (value === true || value === 'true') {
+      return true;
+    }
+
+    if (value === false || value === 'false') {
+      return false;
+    }
+
+    return value;
+  });
+}

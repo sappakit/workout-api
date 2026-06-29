@@ -42,7 +42,7 @@ export class WorkoutController {
   constructor(private readonly workoutService: WorkoutService) {}
 
   // Workouts
-  @Auth(AuthType.PUBLIC)
+  @Auth(AuthType.USER)
   @Get()
   @ApiResponse({
     status: 200,
@@ -50,8 +50,11 @@ export class WorkoutController {
     type: WorkoutDto,
   })
   @Serialize(WorkoutDto)
-  async findAllWorkouts(@Query() query: WorkoutQueryDto) {
-    return this.workoutService.findAllWorkouts(query);
+  async findAllWorkouts(
+    @Query() query: WorkoutQueryDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.workoutService.findAllWorkouts(query, user);
   }
 
   // Create workout

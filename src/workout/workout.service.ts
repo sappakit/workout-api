@@ -70,7 +70,7 @@ export class WorkoutService {
   ) {}
 
   // Workouts
-  async findAllWorkouts(query: WorkoutQueryDto) {
+  async findAllWorkouts(query: WorkoutQueryDto, user: ActiveUserData) {
     const options: FindManyOptions<Workout> = {
       relations: {
         workout_focus_type: true,
@@ -83,6 +83,12 @@ export class WorkoutService {
       },
       order: { created_at: 'DESC' },
     };
+
+    if (query.createdByMe) {
+      options.where = {
+        user: { id: user.sub },
+      };
+    }
 
     const searchFields = [
       'name',
