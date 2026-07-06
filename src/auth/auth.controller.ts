@@ -1,17 +1,24 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { Auth } from './decorators/auth.decorator';
-import { type LocalValidatedUser, AuthType } from './enums/auth.enum';
 import { ApiResponse } from '@nestjs/swagger';
+import { SuccessMessageDto } from 'src/common/dto/response.dto';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
-import { LoginDto, RefreshDto, RegisterDto } from './dto/auth-body.dto';
+import { AuthService } from './auth.service';
+import { ActiveUser } from './decorators/active-user.decorator';
+import { Auth } from './decorators/auth.decorator';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RefreshDto,
+  RegisterDto,
+  ResetPasswordDto,
+  VerifyResetPasswordTokenDto,
+} from './dto/auth-body.dto';
 import {
   AuthUserDto,
   LoginResponseDto,
   TokenPairResponseDto,
 } from './dto/auth-response.dto';
-import { SuccessMessageDto } from 'src/common/dto/response.dto';
-import { ActiveUser } from './decorators/active-user.decorator';
+import { type LocalValidatedUser, AuthType } from './enums/auth.enum';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
@@ -77,5 +84,41 @@ export class AuthController {
   @Serialize(TokenPairResponseDto)
   async refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Auth(AuthType.PUBLIC)
+  @Post('forgot-password')
+  @ApiResponse({
+    status: 200,
+    description: 'Send password reset instructions if the account exists',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Auth(AuthType.PUBLIC)
+  @Post('reset-password')
+  @ApiResponse({
+    status: 200,
+    description: 'Reset password using a valid reset token',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
+  }
+
+  @Auth(AuthType.PUBLIC)
+  @Post('reset-password/verify')
+  @ApiResponse({
+    status: 200,
+    description: 'Verify password reset token',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async verifyPasswordResetToken(@Body() dto: VerifyResetPasswordTokenDto) {
+    return this.authService.verifyPasswordResetToken(dto.token);
   }
 }

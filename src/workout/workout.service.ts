@@ -52,8 +52,8 @@ import { validateWorkoutSavePayload } from './helpers/workout.helper';
 @Injectable()
 export class WorkoutService {
   constructor(
-    private dataSource: DataSource,
-    private paginationService: PaginationService,
+    private readonly dataSource: DataSource,
+    private readonly paginationService: PaginationService,
     private readonly exerciseService: ExerciseService,
 
     // Repository

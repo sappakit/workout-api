@@ -17,7 +17,7 @@ import { UpdateMyProfileDto } from './dto/user-body.dto';
 @Injectable()
 export class UserService {
   constructor(
-    private dataSource: DataSource,
+    private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
 
     // Repository

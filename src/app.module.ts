@@ -13,6 +13,7 @@ import { ExerciseModule } from './exercise/exercise.module';
 import { HashingModule } from './hashing/hashing.module';
 import { UserModule } from './user/user.module';
 import { WorkoutModule } from './workout/workout.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WorkoutModule } from './workout/workout.module';
     ExerciseModule,
     UserModule,
     CloudinaryModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

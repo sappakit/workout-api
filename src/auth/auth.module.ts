@@ -1,21 +1,23 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigType } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
-import jwtConfig from './config/jwt.config';
-import { LocalStrategy } from './strategies/local.strategy';
 import { APP_GUARD } from '@nestjs/core';
-import { AppAuthGuard } from './guards/auth.guard';
-import { JwtAccessGuard } from './guards/jwt-access.guard';
-import { HashingModule } from 'src/hashing/hashing.module';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role, User, UserProfile } from 'db/entities/auth';
-import { TokenModule } from './token/token.module';
+import { EmailModule } from 'src/email/email.module';
+import { HashingModule } from 'src/hashing/hashing.module';
 import { RedisModule } from 'src/redis/redis.module';
-import { RefreshTokenStore } from './session/refresh-session.store';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import jwtConfig from './config/jwt.config';
+import { AppAuthGuard } from './guards/auth.guard';
+import { JwtAccessGuard } from './guards/jwt-access.guard';
+import { PasswordResetTokenStore } from './session/password-reset-token.store';
+import { RefreshTokenStore } from './session/refresh-token.store';
+import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
+import { LocalStrategy } from './strategies/local.strategy';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { RefreshTokenStore } from './session/refresh-session.store';
     HashingModule,
     TokenModule,
     RedisModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -56,6 +59,7 @@ import { RefreshTokenStore } from './session/refresh-session.store';
     //Service
     AuthService,
     RefreshTokenStore,
+    PasswordResetTokenStore,
   ],
 })
 export class AuthModule {}

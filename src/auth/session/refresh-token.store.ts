@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { RefreshSession } from './types/session.types';
 import { RedisService } from 'src/redis/redis.service';
+import { RefreshSession } from './types/session.types';
 
 @Injectable()
 export class RefreshTokenStore {
