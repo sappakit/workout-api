@@ -1,7 +1,8 @@
 import { RefreshSession } from 'src/auth/session/types/session.types';
 
 export type AccessTokenPayload = {
-  sub: number;
+  sub: number; // userId
+  sid: string; // session id
   username: string;
   role: string;
   typ: 'access';
@@ -15,8 +16,8 @@ export type DecodedAccessTokenPayload = AccessTokenPayload & {
 };
 
 export type RefreshTokenPayload = {
-  sub: number; // userId
-  sid: string; // session id
+  sub: number;
+  sid: string;
   typ: 'refresh';
 };
 

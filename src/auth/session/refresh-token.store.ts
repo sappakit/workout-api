@@ -44,4 +44,19 @@ export class RefreshTokenStore {
     multi.del(this.userSessionsKey(userId));
     await multi.exec();
   }
+
+  async deleteOtherUserSessions(userId: number, currentSid: string) {
+    const sids = await this.redisService.smembers(this.userSessionsKey(userId));
+
+    const multi = this.redisService.multi();
+
+    for (const sid of sids) {
+      if (sid === currentSid) continue;
+
+      multi.del(this.sessionKey(sid));
+      multi.srem(this.userSessionsKey(userId), sid);
+    }
+
+    await multi.exec();
+  }
 }

@@ -97,3 +97,23 @@ export class VerifyResetPasswordTokenDto {
   })
   token: string;
 }
+
+export class ChangeMyPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    description: 'Current account password',
+    example: 'OldPassword123!',
+  })
+  currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @ApiProperty({
+    description: 'New account password',
+    example: 'NewPassword123!',
+    minLength: 8,
+  })
+  newPassword: string;
+}

@@ -15,8 +15,12 @@ import { DataSource, Repository } from 'typeorm';
 import { nowSec } from 'utils/time.util';
 import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ROLE_CODE } from './auth.constants';
-import { LoginDto, RegisterDto } from './dto/auth-body.dto';
-import { LocalValidatedUser } from './enums/auth.enum';
+import {
+  ChangeMyPasswordDto,
+  LoginDto,
+  RegisterDto,
+} from './dto/auth-body.dto';
+import { ActiveUserData, LocalValidatedUser } from './enums/auth.enum';
 import { PasswordResetTokenStore } from './session/password-reset-token.store';
 import { RefreshTokenStore } from './session/refresh-token.store';
 import { TokenService } from './token/token.service';
@@ -223,6 +227,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.tokenService.generateAccessToken({
         sub: userId,
+        sid,
         username,
         role,
         typ: 'access',
@@ -338,9 +343,9 @@ export class AuthService {
       password_hash: passwordHash,
     });
 
-    await this.passwordResetTokenStore.deleteToken(tokenHash);
-
     await this.refreshStore.deleteAllUserSessions(resetToken.userId);
+
+    await this.passwordResetTokenStore.deleteToken(tokenHash);
 
     return { message: 'Password has been reset successfully.' };
   }
@@ -363,6 +368,50 @@ export class AuthService {
     return {
       tokenHash,
       resetToken,
+    };
+  }
+
+  async changeMyPassword(user: ActiveUserData, dto: ChangeMyPasswordDto) {
+    const currentUser = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.password_hash')
+      .where('user.id = :id', { id: user.sub })
+      .getOne();
+
+    if (!currentUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isCurrentPasswordValid = await this.hashingService.compare(
+      dto.currentPassword,
+      currentUser.password_hash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const isSamePassword = await this.hashingService.compare(
+      dto.newPassword,
+      currentUser.password_hash,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    const passwordHash = await this.hashingService.hash(dto.newPassword);
+
+    await this.userRepo.update(currentUser.id, {
+      password_hash: passwordHash,
+    });
+
+    await this.refreshStore.deleteOtherUserSessions(currentUser.id, user.sid);
+
+    return {
+      message: 'Password has been changed successfully.',
     };
   }
 }

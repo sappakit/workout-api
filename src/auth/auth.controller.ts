@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { SuccessMessageDto } from 'src/common/dto/response.dto';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { ActiveUser } from './decorators/active-user.decorator';
 import { Auth } from './decorators/auth.decorator';
 import {
+  ChangeMyPasswordDto,
   ForgotPasswordDto,
   LoginDto,
   RefreshDto,
@@ -18,7 +19,11 @@ import {
   LoginResponseDto,
   TokenPairResponseDto,
 } from './dto/auth-response.dto';
-import { type LocalValidatedUser, AuthType } from './enums/auth.enum';
+import {
+  type ActiveUserData,
+  AuthType,
+  type LocalValidatedUser,
+} from './enums/auth.enum';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
@@ -84,6 +89,21 @@ export class AuthController {
   @Serialize(TokenPairResponseDto)
   async refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Auth(AuthType.USER)
+  @Patch('change-password')
+  @ApiResponse({
+    status: 200,
+    description: 'Change password for the authenticated user',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async changeMyPassword(
+    @ActiveUser() user: ActiveUserData,
+    @Body() dto: ChangeMyPasswordDto,
+  ) {
+    return this.authService.changeMyPassword(user, dto);
   }
 
   @Auth(AuthType.PUBLIC)
