@@ -219,24 +219,24 @@ export class WorkoutService {
         await workoutExerciseRepo.save(workoutExercises);
 
       // Create workout exercise sets
-      const workoutExerciseSets = payload.workoutExercises.flatMap((item) => {
-        const savedWorkoutExercise = savedWorkoutExercises.find(
-          (savedItem) => savedItem.order_index === item.orderIndex,
-        );
+      const workoutExerciseSets = payload.workoutExercises.flatMap(
+        (item, index) => {
+          const savedWorkoutExercise = savedWorkoutExercises[index];
 
-        if (!savedWorkoutExercise) {
-          return [];
-        }
+          if (!savedWorkoutExercise) {
+            return [];
+          }
 
-        return item.sets.map((set) => ({
-          workout_exercise: { id: savedWorkoutExercise.id },
-          set_number: set.setNumber,
-          reps: set.reps,
-          weight: set.weight,
-          distance: set.distance,
-          duration: set.duration,
-        }));
-      });
+          return item.sets.map((set) => ({
+            workout_exercise: { id: savedWorkoutExercise.id },
+            set_number: set.setNumber,
+            reps: set.reps,
+            weight: set.weight,
+            distance: set.distance,
+            duration: set.duration,
+          }));
+        },
+      );
 
       if (workoutExerciseSets.length > 0) {
         await workoutExerciseSetRepo.insert(workoutExerciseSets);
@@ -458,6 +458,7 @@ export class WorkoutService {
         const savedNewWorkoutExercises =
           await workoutExerciseRepo.save(newWorkoutExercises);
 
+        // Create workout exercise sets
         const newWorkoutExerciseSets = createItems.flatMap((item, index) => {
           const savedWorkoutExercise = savedNewWorkoutExercises[index];
 
