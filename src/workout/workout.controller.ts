@@ -115,7 +115,7 @@ export class WorkoutController {
     return this.workoutService.updateWeeklyPlan(user, body);
   }
 
-  // Schedule
+  // Get schedule
   @Auth(AuthType.USER)
   @Get('schedule')
   @ApiResponse({
@@ -124,11 +124,11 @@ export class WorkoutController {
     type: WorkoutScheduleDto,
   })
   @Serialize(WorkoutScheduleDto)
-  async getScheduleByDate(
+  async getOrCreateScheduleByDate(
     @ActiveUser() user: ActiveUserData,
     @Query() query: GetWorkoutScheduleQueryDto,
   ) {
-    return this.workoutService.getScheduleByDate(user, query);
+    return this.workoutService.getOrCreateScheduleByDate(user, query);
   }
 
   // Update scheduled workout
@@ -137,9 +137,9 @@ export class WorkoutController {
   @ApiResponse({
     status: 200,
     description: 'Update scheduled workout',
-    type: WorkoutScheduleDto,
+    type: SuccessMessageDto,
   })
-  @Serialize(WorkoutScheduleDto)
+  @Serialize(SuccessMessageDto)
   async updateScheduleWorkout(
     @ActiveUser() user: ActiveUserData,
     @Param('id', ParseIntPipe) id: number,

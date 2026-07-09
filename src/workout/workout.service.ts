@@ -495,7 +495,7 @@ export class WorkoutService {
   }
 
   // Workout schedule
-  async getScheduleByDate(
+  async getOrCreateScheduleByDate(
     user: ActiveUserData,
     query: GetWorkoutScheduleQueryDto,
   ) {
@@ -504,7 +504,7 @@ export class WorkoutService {
     const rawDate = date ? new Date(date) : new Date();
     const scheduledDate = toUTCDateString(rawDate);
 
-    // Check if schedule already exists
+    // Check if the schedule already exists
     const exists = await this.workoutScheduleRepo.exists({
       where: {
         user: { id: user.sub },
@@ -512,12 +512,69 @@ export class WorkoutService {
       },
     });
 
-    // If not exists, add schedule
+    // Create the schedule if it does not exist
     if (!exists) {
       await this.createScheduleForDate(user, scheduledDate);
     }
 
-    const schedule = await this.workoutScheduleRepo.findOne({
+    return this.findScheduleByDate(user, scheduledDate);
+  }
+
+  // Create a new schedule for date
+  private async createScheduleForDate(
+    user: ActiveUserData,
+    scheduledDate: string,
+  ) {
+    const dayOfWeek = getISOWeekday(new Date(scheduledDate)); // 1–7
+
+    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
+      where: {
+        user: { id: user.sub },
+        day_of_week: dayOfWeek,
+      },
+      relations: {
+        workout: true,
+      },
+    });
+
+    // No weekly plan row exists yet
+    if (!weeklyPlan) {
+      return;
+    }
+
+    // Skip rest days and unassigned days
+    if (weeklyPlan.day_type !== WorkoutWeeklyPlanDayType.WORKOUT) {
+      return;
+    }
+
+    if (!weeklyPlan.workout) {
+      throw new BadRequestException(
+        `Weekly plan for day ${dayOfWeek} is marked as workout but has no workout assigned.`,
+      );
+    }
+
+    await this.workoutScheduleRepo
+      .createQueryBuilder()
+      .insert()
+      .into(this.workoutScheduleRepo.target)
+      .values({
+        user: { id: user.sub },
+        workout: { id: weeklyPlan.workout.id },
+        scheduled_date: scheduledDate,
+        status: WorkoutScheduleStatus.PLANNED,
+        created_by: user.username,
+        updated_by: user.username,
+      })
+      .orIgnore() // Ignore duplicate inserts from race conditions
+      .execute();
+  }
+
+  // Find schedule by date
+  private async findScheduleByDate(
+    user: ActiveUserData,
+    scheduledDate: string,
+  ) {
+    return this.workoutScheduleRepo.findOne({
       where: {
         user: { id: user.sub },
         scheduled_date: scheduledDate,
@@ -543,54 +600,6 @@ export class WorkoutService {
         },
       },
     });
-
-    return schedule;
-  }
-
-  // Create a new schedule for date
-  private async createScheduleForDate(
-    user: ActiveUserData,
-    scheduledDate: string,
-  ) {
-    const dayOfWeek = getISOWeekday(new Date(scheduledDate)); // 1–7
-
-    const weeklyPlan = await this.workoutWeeklyPlanRepo.findOne({
-      where: {
-        user: { id: user.sub },
-        day_of_week: dayOfWeek,
-      },
-      relations: {
-        workout: true,
-      },
-    });
-
-    // No weekly plan row yet
-    if (!weeklyPlan) {
-      return null;
-    }
-
-    // Rest day or unassigned day
-    if (weeklyPlan.day_type !== WorkoutWeeklyPlanDayType.WORKOUT) {
-      return null;
-    }
-
-    if (!weeklyPlan.workout) {
-      throw new BadRequestException(
-        `Weekly plan for day ${dayOfWeek} is marked as workout but has no workout assigned.`,
-      );
-    }
-
-    // create schedule
-    const newSchedule = this.workoutScheduleRepo.create({
-      user: { id: user.sub },
-      workout: { id: weeklyPlan.workout.id },
-      scheduled_date: scheduledDate,
-      status: WorkoutScheduleStatus.PLANNED,
-      created_by: user.username,
-      updated_by: user.username,
-    });
-
-    return await this.workoutScheduleRepo.save(newSchedule);
   }
 
   // Get the current workout state for today
@@ -696,7 +705,7 @@ export class WorkoutService {
     );
 
     // Get existing schedule first
-    const schedule = await this.getScheduleByDate(user, {
+    const schedule = await this.getOrCreateScheduleByDate(user, {
       date: today.toISOString(),
     });
 
@@ -1662,9 +1671,7 @@ export class WorkoutService {
 
     await this.workoutScheduleRepo.save(schedule);
 
-    return this.getScheduleByDate(user, {
-      date: schedule.scheduled_date,
-    });
+    return { message: 'Scheduled workout updated successfully' };
   }
 
   // Get weekly plan
