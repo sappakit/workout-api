@@ -1,12 +1,20 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
-import { UserService } from './user.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiResponse } from '@nestjs/swagger';
+import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth.enum';
-import { ApiResponse } from '@nestjs/swagger';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
-import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
-import { UserDto } from './dto/user-response.dto';
 import { UpdateMyProfileDto } from './dto/user-body.dto';
+import { UserDto } from './dto/user-response.dto';
+import { UserService } from './user.service';
 
 @Controller('users')
 export class UserController {
@@ -26,6 +34,7 @@ export class UserController {
 
   @Auth(AuthType.USER)
   @Patch('me/profile')
+  @UseInterceptors(FileInterceptor('image'))
   @ApiResponse({
     status: 200,
     description: 'Update profile information for the current user',
@@ -35,7 +44,8 @@ export class UserController {
   async updateMyProfile(
     @ActiveUser('sub') userId: number,
     @Body() dto: UpdateMyProfileDto,
+    @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.userService.updateMyProfile(userId, dto);
+    return this.userService.updateMyProfile(userId, dto, image);
   }
 }

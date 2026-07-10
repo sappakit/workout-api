@@ -1,11 +1,18 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { Auth } from 'src/auth/decorators/auth.decorator';
-import { AuthType } from 'src/auth/enums/auth.enum';
 import { ApiResponse } from '@nestjs/swagger';
+import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { type ActiveUserData, AuthType } from 'src/auth/enums/auth.enum';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
-import { PagingDto } from 'src/common/dto/request.dto';
+import {
+  ExerciseQueryDto,
+  GetExercisesPerformanceQueryDto,
+} from '../dto/exercise-query.dto';
+import {
+  ExerciseDto,
+  ExercisePerformanceByExerciseIdDto,
+} from '../dto/exercise-response.dto';
 import { ExerciseService } from '../exercise.service';
-import { ExerciseDto } from '../dto/exercise-response.dto';
 
 @Controller('exercises')
 export class ExerciseController {
@@ -20,8 +27,24 @@ export class ExerciseController {
     type: ExerciseDto,
   })
   @Serialize(ExerciseDto)
-  async findAllExercises(@Query() query: PagingDto) {
+  async findAllExercises(@Query() query: ExerciseQueryDto) {
     return this.exerciseService.findAllExercises(query);
+  }
+
+  // Get exercise performance summaries (Previous/best)
+  @Auth(AuthType.USER)
+  @Get('performance')
+  @ApiResponse({
+    status: 200,
+    description: 'Get previous and best performance for exercises',
+    type: ExercisePerformanceByExerciseIdDto,
+  })
+  @Serialize(ExercisePerformanceByExerciseIdDto)
+  async getExercisesPerformance(
+    @ActiveUser() user: ActiveUserData,
+    @Query() query: GetExercisesPerformanceQueryDto,
+  ) {
+    return this.exerciseService.getExercisesPerformance(user, query);
   }
 
   // Exercise detail

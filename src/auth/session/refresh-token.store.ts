@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { RefreshSession } from './types/session.types';
 import { RedisService } from 'src/redis/redis.service';
+import { RefreshSession } from './types/session.types';
 
 @Injectable()
 export class RefreshTokenStore {
@@ -42,6 +42,21 @@ export class RefreshTokenStore {
     const multi = this.redisService.multi();
     for (const sid of sids) multi.del(this.sessionKey(sid));
     multi.del(this.userSessionsKey(userId));
+    await multi.exec();
+  }
+
+  async deleteOtherUserSessions(userId: number, currentSid: string) {
+    const sids = await this.redisService.smembers(this.userSessionsKey(userId));
+
+    const multi = this.redisService.multi();
+
+    for (const sid of sids) {
+      if (sid === currentSid) continue;
+
+      multi.del(this.sessionKey(sid));
+      multi.srem(this.userSessionsKey(userId), sid);
+    }
+
     await multi.exec();
   }
 }

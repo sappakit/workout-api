@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { RedisService } from './redis.service';
-import redisConfig from 'src/config/redis.config';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import Redis from 'ioredis';
+import redisConfig from 'src/config/redis.config';
 import { REDIS_CLIENT } from './redis.constants';
+import { RedisService } from './redis.service';
 
 @Module({
   imports: [ConfigModule.forFeature(redisConfig)],

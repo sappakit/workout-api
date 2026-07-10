@@ -1,12 +1,11 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginDto {
   @IsNotEmpty()
@@ -57,4 +56,64 @@ export class RefreshDto {
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   refreshToken: string;
+}
+
+export class ForgotPasswordDto {
+  @IsNotEmpty()
+  @IsEmail()
+  @ApiProperty({
+    description: 'Email address of the account requesting a password reset',
+    example: 'john@example.com',
+  })
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    description: 'Password reset token from the reset email link',
+    example: 'a3f5c9e8b1...',
+  })
+  token: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @ApiProperty({
+    description: 'New password for the account',
+    example: 'NewPassword123!',
+    minLength: 8,
+  })
+  password: string;
+}
+
+export class VerifyResetPasswordTokenDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    description: 'Password reset token from the reset email link',
+    example: 'a3f5c9e8b1...',
+  })
+  token: string;
+}
+
+export class ChangeMyPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({
+    description: 'Current account password',
+    example: 'OldPassword123!',
+  })
+  currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @ApiProperty({
+    description: 'New account password',
+    example: 'NewPassword123!',
+    minLength: 8,
+  })
+  newPassword: string;
 }

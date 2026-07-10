@@ -21,4 +21,12 @@ export class PagingDto {
   @IsString()
   @ApiPropertyOptional()
   search?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Sort by field and direction. Format: field:ASC or field:DESC',
+    example: 'created_at:DESC',
+  })
+  sortBy?: string;
 }

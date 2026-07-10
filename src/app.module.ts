@@ -1,17 +1,19 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AllEntities } from 'db/entities';
-import { AuthModule } from './auth/auth.module';
-import { envValidationSchema } from './config/env.validation';
-import { HashingModule } from './hashing/hashing.module';
-import { CommonModule } from './common/common.module';
-import { WorkoutModule } from './workout/workout.module';
 import { getDBEnv } from 'utils/getDBEnv.util';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CommonModule } from './common/common.module';
+import { envValidationSchema } from './config/env.validation';
 import { ExerciseModule } from './exercise/exercise.module';
+import { HashingModule } from './hashing/hashing.module';
 import { UserModule } from './user/user.module';
+import { WorkoutModule } from './workout/workout.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { UserModule } from './user/user.module';
     WorkoutModule,
     ExerciseModule,
     UserModule,
+    CloudinaryModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

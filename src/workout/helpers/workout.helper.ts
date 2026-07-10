@@ -34,14 +34,7 @@ export async function validateWorkoutSavePayload(
     ...new Set(payload.workoutExercises.map((item) => item.exerciseId)),
   ];
 
-  // Guard against duplicate exercise in same workout
-  if (uniqueExerciseIds.length !== payload.workoutExercises.length) {
-    throw new BadRequestException(
-      'Duplicate exerciseId is not allowed in the same workout',
-    );
-  }
-
-  // Validate exercise ids
+  // Allow duplicate exercises, but validate each unique exercise id only once
   const exercises = await exerciseRepo.find({
     where: { id: In(uniqueExerciseIds) },
   });

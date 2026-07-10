@@ -1,7 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
-export class RoleResponseDto {
+class AuthUserProfileDto {
+  @Expose({ name: 'first_name' })
+  @ApiProperty({ example: 'Joe' })
+  firstName: string;
+
+  @Expose({ name: 'last_name' })
+  @ApiProperty({ example: 'Doe' })
+  lastName: string;
+
+  @Expose({ name: 'image_url' })
+  @ApiProperty()
+  imageUrl: string;
+}
+
+export class AuthRoleDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -15,7 +29,7 @@ export class RoleResponseDto {
   name: string;
 }
 
-export class UserResponseDto {
+export class AuthUserDto {
   @Expose()
   @ApiProperty()
   id: number;
@@ -29,9 +43,14 @@ export class UserResponseDto {
   email: string;
 
   @Expose()
-  @Type(() => RoleResponseDto)
+  @Type(() => AuthUserProfileDto)
   @ApiProperty()
-  role: RoleResponseDto;
+  profile: AuthUserProfileDto;
+
+  @Expose()
+  @Type(() => AuthRoleDto)
+  @ApiProperty()
+  role: AuthRoleDto;
 }
 
 export class LoginResponseDto {
@@ -44,9 +63,9 @@ export class LoginResponseDto {
   refreshToken: string;
 
   @Expose()
-  @Type(() => UserResponseDto)
-  @ApiProperty({ type: () => UserResponseDto })
-  user: UserResponseDto;
+  @Type(() => AuthUserDto)
+  @ApiProperty({ type: () => AuthUserDto })
+  user: AuthUserDto;
 }
 
 export class TokenPairResponseDto {

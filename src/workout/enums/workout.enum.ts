@@ -34,10 +34,17 @@ export enum WorkoutCurrentMode {
   IN_PROGRESS = 'in_progress',
   SCHEDULED = 'scheduled',
   REST_DAY = 'rest_day',
+  UNASSIGNED = 'unassigned',
 }
 
 export enum WorkoutProgressOverviewType {
   WEEKLY = 'weekly',
   YEARLY = 'yearly',
   ALL_TIME = 'all_time',
+}
+
+export enum WorkoutWeeklyPlanDayType {
+  WORKOUT = 'workout',
+  REST = 'rest',
+  UNASSIGNED = 'unassigned',
 }

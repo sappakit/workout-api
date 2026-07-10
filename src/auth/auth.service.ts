@@ -1,30 +1,44 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role, User, UserProfile } from 'db/entities/auth';
-import { DataSource, Repository } from 'typeorm';
+import { generateSecureToken, hashToken } from 'src/common/utils/security.util';
+import { EmailService } from 'src/email/email.service';
 import { HashingService } from 'src/hashing/services/hashing.service';
-import { TokenService } from './token/token.service';
-import { LoginDto, RegisterDto } from './dto/auth-body.dto';
-import { LocalValidatedUser } from './enums/auth.enum';
-import { v4 as uuidv4 } from 'uuid';
-import { RefreshTokenStore } from './session/refresh-session.store';
-import { hashToken } from 'utils/hash.util';
+import { DataSource, Repository } from 'typeorm';
 import { nowSec } from 'utils/time.util';
-import { IssueTokenParams } from './token/types/token.types';
+import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ROLE_CODE } from './auth.constants';
+import {
+  ChangeMyPasswordDto,
+  LoginDto,
+  RegisterDto,
+} from './dto/auth-body.dto';
+import { ActiveUserData, LocalValidatedUser } from './enums/auth.enum';
+import { PasswordResetTokenStore } from './session/password-reset-token.store';
+import { RefreshTokenStore } from './session/refresh-token.store';
+import { TokenService } from './token/token.service';
+import { IssueTokenParams } from './token/types/token.types';
 
 @Injectable()
 export class AuthService {
+  private readonly resetPasswordUrl: string;
+  private readonly passwordResetTokenTtl: number;
+
   constructor(
-    private dataSource: DataSource,
+    private readonly dataSource: DataSource,
     private readonly hashingService: HashingService,
     private readonly tokenService: TokenService,
     private readonly refreshStore: RefreshTokenStore,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
+    private readonly passwordResetTokenStore: PasswordResetTokenStore,
 
     // Repository
     @InjectRepository(User)
@@ -33,7 +47,15 @@ export class AuthService {
     private readonly profileRepo: Repository<UserProfile>,
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
-  ) {}
+  ) {
+    this.resetPasswordUrl = this.configService.getOrThrow<string>(
+      'APP_RESET_PASSWORD_URL',
+    );
+
+    this.passwordResetTokenTtl = this.configService.getOrThrow<number>(
+      'PASSWORD_RESET_TOKEN_TTL',
+    );
+  }
 
   async validateUser(dto: LoginDto) {
     const { identifier: identifierRaw, password } = dto;
@@ -68,14 +90,22 @@ export class AuthService {
     return user;
   }
 
-  async loadUser(userId: number) {
+  async getCurrentUser(userId: number) {
     const user = await this.userRepo.findOne({
       where: { id: userId },
-      relations: { role: true },
+      relations: {
+        profile: true,
+        role: true,
+      },
       select: {
         id: true,
         username: true,
         email: true,
+        profile: {
+          first_name: true,
+          last_name: true,
+          image_url: true,
+        },
         role: {
           code: true,
           name: true,
@@ -174,22 +204,13 @@ export class AuthService {
       role: user.role.code,
     });
 
-    // Return response
-    const response = {
+    const authUser = await this.getCurrentUser(user.id);
+
+    return {
       accessToken,
       refreshToken,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: {
-          code: user.role.code,
-          name: user.role.name,
-        },
-      },
+      user: authUser,
     };
-
-    return response;
   }
 
   async logout(refreshToken: string) {
@@ -206,6 +227,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.tokenService.generateAccessToken({
         sub: userId,
+        sid,
         username,
         role,
         typ: 'access',
@@ -255,7 +277,7 @@ export class AuthService {
     }
 
     // get user detail
-    const user = await this.loadUser(session.userId);
+    const user = await this.getCurrentUser(session.userId);
 
     // rotate
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
@@ -268,5 +290,128 @@ export class AuthService {
       });
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  }
+
+  // Forgot password
+  async forgotPassword(email: string) {
+    const token = await this.createPasswordResetToken(email);
+
+    if (token) {
+      const resetUrl = `${this.resetPasswordUrl}?token=${token}`;
+
+      await this.emailService.sendPasswordResetEmail(email, resetUrl, {
+        expiresInMinutes: Math.floor(this.passwordResetTokenTtl / 60),
+      });
+    }
+
+    return {
+      message: 'If an account exists, password reset instructions were sent.',
+    };
+  }
+
+  private async createPasswordResetToken(
+    email: string,
+  ): Promise<string | null> {
+    const user = await this.userRepo.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    const rawToken = generateSecureToken();
+    const tokenHash = hashToken(rawToken);
+
+    await this.passwordResetTokenStore.saveToken(
+      tokenHash,
+      { userId: user.id },
+      this.passwordResetTokenTtl,
+    );
+
+    return rawToken;
+  }
+
+  // Reset password
+  async resetPassword(token: string, password: string) {
+    const { tokenHash, resetToken } =
+      await this.getValidPasswordResetToken(token);
+
+    const passwordHash = await this.hashingService.hash(password);
+
+    await this.userRepo.update(resetToken.userId, {
+      password_hash: passwordHash,
+    });
+
+    await this.refreshStore.deleteAllUserSessions(resetToken.userId);
+
+    await this.passwordResetTokenStore.deleteToken(tokenHash);
+
+    return { message: 'Password has been reset successfully.' };
+  }
+
+  async verifyPasswordResetToken(token: string) {
+    await this.getValidPasswordResetToken(token);
+
+    return { message: 'Reset token is valid.' };
+  }
+
+  private async getValidPasswordResetToken(token: string) {
+    const tokenHash = hashToken(token);
+
+    const resetToken = await this.passwordResetTokenStore.getToken(tokenHash);
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    return {
+      tokenHash,
+      resetToken,
+    };
+  }
+
+  async changeMyPassword(user: ActiveUserData, dto: ChangeMyPasswordDto) {
+    const currentUser = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.password_hash')
+      .where('user.id = :id', { id: user.sub })
+      .getOne();
+
+    if (!currentUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isCurrentPasswordValid = await this.hashingService.compare(
+      dto.currentPassword,
+      currentUser.password_hash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const isSamePassword = await this.hashingService.compare(
+      dto.newPassword,
+      currentUser.password_hash,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    const passwordHash = await this.hashingService.hash(dto.newPassword);
+
+    await this.userRepo.update(currentUser.id, {
+      password_hash: passwordHash,
+    });
+
+    await this.refreshStore.deleteOtherUserSessions(currentUser.id, user.sid);
+
+    return {
+      message: 'Password has been changed successfully.',
+    };
   }
 }

@@ -1,9 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import jwtConfig from '../config/jwt.config';
-import { Inject } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
 import { ActiveUserData } from '../enums/auth.enum';
 import { DecodedAccessTokenPayload } from '../token/types/token.types';
 
@@ -28,6 +27,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     return {
       sub: payload.sub,
+      sid: payload.sid,
       username: payload.username,
       role: payload.role,
     };

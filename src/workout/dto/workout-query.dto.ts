@@ -1,5 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
+import {
+  ToBoolean,
+  ToNumberArray,
+} from 'src/common/decorators/transform.decorator';
+import { PagingDto } from 'src/common/dto/request.dto';
 
 export class GetWorkoutScheduleQueryDto {
   @IsOptional()
@@ -9,4 +20,40 @@ export class GetWorkoutScheduleQueryDto {
     example: '2026-01-01',
   })
   date?: string;
+}
+
+export class WorkoutQueryDto extends PagingDto {
+  @IsOptional()
+  @ToNumberArray()
+  @IsArray()
+  @IsInt({ each: true })
+  @ApiPropertyOptional({
+    type: Number,
+    isArray: true,
+    description: 'Filter by workout focus type IDs.',
+    example: [1, 2, 3],
+  })
+  focusTypeIds?: number[];
+
+  @IsOptional()
+  @ToNumberArray()
+  @IsArray()
+  @IsInt({ each: true })
+  @ApiPropertyOptional({
+    type: Number,
+    isArray: true,
+    description: 'Filter by muscle IDs.',
+    example: [1, 2, 3],
+  })
+  muscleIds?: number[];
+
+  @IsOptional()
+  @ToBoolean()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'If true, only return workouts created by the current user.',
+    example: true,
+  })
+  createdByMe?: boolean;
 }

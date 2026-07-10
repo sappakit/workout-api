@@ -8,14 +8,23 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { WorkoutService } from './workout.service';
+import { ApiResponse } from '@nestjs/swagger';
+import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { type ActiveUserData, AuthType } from 'src/auth/enums/auth.enum';
-import { ApiResponse } from '@nestjs/swagger';
-import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import { PagingDto } from 'src/common/dto/request.dto';
-import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
-import { GetWorkoutScheduleQueryDto } from './dto/workout-query.dto';
+import { SuccessMessageDto } from 'src/common/dto/response.dto';
+import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
+import {
+  FinishWorkoutSessionDto,
+  SaveWorkoutDto,
+  UpdateWorkoutScheduleWorkoutDto,
+  UpdateWorkoutWeeklyPlanDto,
+} from './dto/workout-body.dto';
+import {
+  GetWorkoutScheduleQueryDto,
+  WorkoutQueryDto,
+} from './dto/workout-query.dto';
 import {
   WorkoutCurrentDto,
   WorkoutDto,
@@ -23,20 +32,17 @@ import {
   WorkoutProgressOverviewDto,
   WorkoutScheduleDto,
   WorkoutSessionDto,
+  WorkoutTodayOverviewDto,
+  WorkoutWeeklyPlanDto,
 } from './dto/workout-response.dto';
-import {
-  FinishWorkoutSessionDto,
-  SaveWorkoutDto,
-  UpdateWorkoutScheduleWorkoutDto,
-} from './dto/workout-body.dto';
-import { SuccessMessageDto } from 'src/common/dto/response.dto';
+import { WorkoutService } from './workout.service';
 
 @Controller('workouts')
 export class WorkoutController {
   constructor(private readonly workoutService: WorkoutService) {}
 
   // Workouts
-  @Auth(AuthType.PUBLIC)
+  @Auth(AuthType.USER)
   @Get()
   @ApiResponse({
     status: 200,
@@ -44,8 +50,11 @@ export class WorkoutController {
     type: WorkoutDto,
   })
   @Serialize(WorkoutDto)
-  async findAllWorkouts(@Query() query: PagingDto) {
-    return this.workoutService.findAllWorkouts(query);
+  async findAllWorkouts(
+    @Query() query: WorkoutQueryDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.workoutService.findAllWorkouts(query, user);
   }
 
   // Create workout
@@ -77,7 +86,36 @@ export class WorkoutController {
     return this.workoutService.findAllWorkoutFocusTypes(query);
   }
 
-  // Schedule
+  // Get weekly plan
+  @Auth(AuthType.USER)
+  @Get('weekly-plan')
+  @ApiResponse({
+    status: 200,
+    description: 'Get weekly workout plan',
+    type: WorkoutWeeklyPlanDto,
+  })
+  @Serialize(WorkoutWeeklyPlanDto)
+  async getWeeklyPlan(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getWeeklyPlan(user);
+  }
+
+  // Update weekly plan
+  @Auth(AuthType.USER)
+  @Patch('weekly-plan')
+  @ApiResponse({
+    status: 200,
+    description: 'Update weekly workout plan',
+    type: SuccessMessageDto,
+  })
+  @Serialize(SuccessMessageDto)
+  async updateWeeklyPlan(
+    @ActiveUser() user: ActiveUserData,
+    @Body() body: UpdateWorkoutWeeklyPlanDto,
+  ) {
+    return this.workoutService.updateWeeklyPlan(user, body);
+  }
+
+  // Get schedule
   @Auth(AuthType.USER)
   @Get('schedule')
   @ApiResponse({
@@ -86,11 +124,11 @@ export class WorkoutController {
     type: WorkoutScheduleDto,
   })
   @Serialize(WorkoutScheduleDto)
-  async getScheduleByDate(
+  async getOrCreateScheduleByDate(
     @ActiveUser() user: ActiveUserData,
     @Query() query: GetWorkoutScheduleQueryDto,
   ) {
-    return this.workoutService.getScheduleByDate(user, query);
+    return this.workoutService.getOrCreateScheduleByDate(user, query);
   }
 
   // Update scheduled workout
@@ -99,9 +137,9 @@ export class WorkoutController {
   @ApiResponse({
     status: 200,
     description: 'Update scheduled workout',
-    type: WorkoutScheduleDto,
+    type: SuccessMessageDto,
   })
-  @Serialize(WorkoutScheduleDto)
+  @Serialize(SuccessMessageDto)
   async updateScheduleWorkout(
     @ActiveUser() user: ActiveUserData,
     @Param('id', ParseIntPipe) id: number,
@@ -135,6 +173,19 @@ export class WorkoutController {
   @Serialize(WorkoutCurrentDto)
   async getCurrentWorkout(@ActiveUser() user: ActiveUserData) {
     return this.workoutService.getCurrentWorkout(user);
+  }
+
+  // Get today's workout overview for home screen banner
+  @Auth(AuthType.USER)
+  @Get('today/overview')
+  @ApiResponse({
+    status: 200,
+    description: "Get today's workout context",
+    type: WorkoutTodayOverviewDto,
+  })
+  @Serialize(WorkoutTodayOverviewDto)
+  async getTodayOverview(@ActiveUser() user: ActiveUserData) {
+    return this.workoutService.getTodayOverview(user);
   }
 
   // Get user workout session history
