@@ -6,11 +6,12 @@ import {
   OneToMany,
   OneToOne,
 } from 'typeorm';
-import { Role } from './role.entity';
-import { UserProfile } from './user-profile.entity';
 import { BaseEntity } from '../shared/base.entity';
 import { Workout, WorkoutSchedule, WorkoutSession } from '../workout';
+import { Exercise } from '../workout/exercise';
 import { WorkoutWeeklyPlan } from '../workout/workout/workout-weekly-plan.entity';
+import { Role } from './role.entity';
+import { UserProfile } from './user-profile.entity';
 
 @Entity({ schema: 'auth', name: 'user' })
 export class User extends BaseEntity {
@@ -35,6 +36,9 @@ export class User extends BaseEntity {
   @ManyToOne(() => Role, (role) => role.users, { nullable: false })
   @JoinColumn({ name: 'role_id' })
   role: Role;
+
+  @OneToMany(() => Exercise, (exercise) => exercise.owner)
+  owned_exercises: Exercise[];
 
   @OneToMany(() => WorkoutSchedule, (schedule) => schedule.user)
   schedules: WorkoutSchedule[];

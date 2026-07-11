@@ -41,10 +41,16 @@ export class ExerciseService {
   async findAllExercises(query: ExerciseQueryDto) {
     const options: FindManyOptions<Exercise> = {
       relations: {
+        media: true,
         muscles: { muscle: true },
         equipment_links: { equipment: true },
       },
-      order: { name: 'ASC' },
+      order: {
+        name: 'ASC',
+        media: {
+          display_order: 'ASC',
+        },
+      },
     };
 
     const searchFields = [

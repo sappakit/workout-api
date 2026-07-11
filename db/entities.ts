@@ -3,7 +3,9 @@ import {
   Equipment,
   Exercise,
   ExerciseEquipment,
+  ExerciseMedia,
   ExerciseMuscle,
+  ExerciseSource,
   ExerciseUserStat,
   Muscle,
   Workout,
@@ -28,6 +30,8 @@ export const AllEntities = [
 
   // Workout
   Exercise,
+  ExerciseSource,
+  ExerciseMedia,
   ExerciseEquipment,
   ExerciseMuscle,
   ExerciseUserStat,

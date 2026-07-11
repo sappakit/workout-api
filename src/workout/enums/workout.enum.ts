@@ -4,6 +4,23 @@ export enum ExerciseType {
   CALISTHENICS = 'calisthenics',
 }
 
+export enum ExerciseMediaType {
+  IMAGE = 'image',
+  VIDEO = 'video',
+}
+
+export enum ExerciseOrigin {
+  SYSTEM = 'system',
+  USER = 'user',
+}
+
+export enum ExerciseStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  HIDDEN = 'hidden',
+  ARCHIVED = 'archived',
+}
+
 export enum DifficultyLevel {
   BEGINNER = 'beginner',
   INTERMEDIATE = 'intermediate',

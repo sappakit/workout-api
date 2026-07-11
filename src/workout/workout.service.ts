@@ -1497,9 +1497,16 @@ export class WorkoutService {
 
     for (const session of sessions) {
       for (const sessionExercise of session.session_exercises ?? []) {
-        const exerciseId = sessionExercise.exercise?.id;
-        const exerciseName = sessionExercise.exercise?.name;
-        const exerciseImageUrl = sessionExercise.exercise?.image_url ?? null;
+        const exercise = sessionExercise.exercise;
+
+        const exerciseId = exercise?.id;
+        const exerciseName = exercise?.name;
+
+        const primaryMedia =
+          exercise?.media?.find((media) => media.is_primary) ??
+          exercise?.media?.[0];
+
+        const exerciseImageUrl = primaryMedia?.url ?? null;
 
         if (!exerciseId || !exerciseName) continue;
 
