@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ROLE_CODE } from './auth.constants';
 import {
   ChangeMyPasswordDto,
+  CreateUserInput,
   LoginDto,
   RegisterDto,
 } from './dto/auth-body.dto';
@@ -120,7 +121,7 @@ export class AuthService {
     return user;
   }
 
-  async register(dto: RegisterDto) {
+  async register_old(dto: RegisterDto) {
     // Normalize input
     const username = dto.username.trim();
     const email = dto.email.trim().toLowerCase();
@@ -192,6 +193,100 @@ export class AuthService {
 
     // Auto login after registration
     return this.login(payload);
+  }
+
+  async register(dto: RegisterDto) {
+    const user = await this.createUser({
+      username: dto.username,
+      email: dto.email,
+      password: dto.password,
+      roleCode: DEFAULT_ROLE_CODE,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+    });
+
+    const payload = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: {
+        code: user.role.code,
+        name: user.role.name,
+      },
+    };
+
+    // Auto login after registration
+    return this.login(payload);
+  }
+
+  async createUser(input: CreateUserInput): Promise<User> {
+    const username = input.username.trim();
+    const email = input.email.trim().toLowerCase();
+    const firstName = input.firstName?.trim();
+    const lastName = input.lastName?.trim();
+
+    return this.dataSource.transaction(async (manager) => {
+      // Check whether username or email already exists
+      const [usernameExists, emailExists] = await Promise.all([
+        manager.exists(User, {
+          where: { username },
+        }),
+        manager.exists(User, {
+          where: { email },
+        }),
+      ]);
+
+      if (usernameExists) {
+        throw new ConflictException('Username already exists');
+      }
+
+      if (emailExists) {
+        throw new ConflictException('Email already exists');
+      }
+
+      // Hash password
+      const passwordHash = await this.hashingService.hash(input.password);
+
+      // Find the requested role
+      const role = await manager.findOne(Role, {
+        where: {
+          code: input.roleCode,
+        },
+      });
+
+      if (!role) {
+        throw new InternalServerErrorException(
+          `Role "${input.roleCode}" not found`,
+        );
+      }
+
+      // Create user
+      const user = manager.create(User, {
+        username,
+        email,
+        password_hash: passwordHash,
+        role,
+        login_attempts: 0,
+        is_reset_password: false,
+        created_by: username,
+        updated_by: username,
+      });
+
+      await manager.save(user);
+
+      // Create user profile
+      const profile = manager.create(UserProfile, {
+        first_name: firstName,
+        last_name: lastName,
+        user,
+        created_by: username,
+        updated_by: username,
+      });
+
+      await manager.save(profile);
+
+      return user;
+    });
   }
 
   async login(user: LocalValidatedUser) {

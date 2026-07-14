@@ -61,5 +61,6 @@ import { TokenModule } from './token/token.module';
     RefreshTokenStore,
     PasswordResetTokenStore,
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

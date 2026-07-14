@@ -14,22 +14,22 @@ export class ExerciseSource extends BaseEntity {
   source_url: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  license_name?: string;
+  license_name: string | null;
 
   @Column({ type: 'text', nullable: true })
-  license_url?: string;
+  license_url: string | null;
 
   @Column({ type: 'text', nullable: true })
-  attribution_text?: string;
+  attribution_text: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  source_version?: string;
+  source_version: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  source_commit_hash?: string;
+  source_commit_hash: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  imported_at?: Date;
+  imported_at: Date | null;
 
   @OneToMany(() => Exercise, (exercise) => exercise.source)
   exercises: Exercise[];

@@ -1,17 +1,9 @@
 import 'dotenv/config';
-import { DataSource } from 'typeorm';
-import { AllEntities } from './entities';
-import { getDBEnv } from 'utils/getDBEnv.util';
 
-const isDev = process.env.NODE_ENV !== 'production';
-const db = getDBEnv(isDev, (key) => process.env[key]);
+import { createDatabaseOptions } from 'src/config/database-options';
+import { DataSource } from 'typeorm';
 
 export default new DataSource({
-  type: 'postgres',
-  ...db,
+  ...createDatabaseOptions((key) => process.env[key]),
   migrations: [__dirname + '/migrations/*.{ts,js}'],
-  entities: AllEntities,
-  synchronize: false,
-  logging: isDev,
-  ssl: !isDev ? { rejectUnauthorized: false } : false,
 });

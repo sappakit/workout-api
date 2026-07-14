@@ -7,6 +7,7 @@ import {
   ExerciseType,
 } from 'src/workout/enums/workout.enum';
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -23,6 +24,45 @@ import {
 } from '.';
 import { WorkoutExercise, WorkoutSessionExercise } from '../workout';
 
+// Ensures system exercises have no owner, while user exercises must have one.
+const EXERCISE_ORIGIN_OWNER_CHECK = `
+  (
+    "origin" = '${ExerciseOrigin.SYSTEM}'
+    AND "owner_user_id" IS NULL
+  )
+  OR
+  (
+    "origin" = '${ExerciseOrigin.USER}'
+    AND "owner_user_id" IS NOT NULL
+  )
+`;
+
+// Ensures source_id and source_external_id are either both set or both null.
+const EXERCISE_SOURCE_IDENTITY_CHECK = `
+  (
+    "source_id" IS NULL
+    AND "source_external_id" IS NULL
+  )
+  OR
+  (
+    "source_id" IS NOT NULL
+    AND "source_external_id" IS NOT NULL
+  )
+`;
+
+// Prevents user-created exercises from being linked to an external source.
+const EXERCISE_USER_SOURCE_CHECK = `
+  "origin" = '${ExerciseOrigin.SYSTEM}'
+  OR
+  (
+    "source_id" IS NULL
+    AND "source_external_id" IS NULL
+  )
+`;
+
+@Check('CHK_exercises_origin_owner', EXERCISE_ORIGIN_OWNER_CHECK)
+@Check('CHK_exercises_source_identity', EXERCISE_SOURCE_IDENTITY_CHECK)
+@Check('CHK_exercises_user_source', EXERCISE_USER_SOURCE_CHECK)
 @Index(['owner'])
 @Index(['source', 'source_external_id'], { unique: true })
 @Entity({ schema: 'workout', name: 'exercises' })

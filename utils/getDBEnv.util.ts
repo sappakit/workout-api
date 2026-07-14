@@ -2,8 +2,8 @@ import { DEV_KEYS, PROD_KEYS } from 'types/env.types';
 
 type EnvGetter = (key: string) => string | undefined;
 
-export function getDBEnv(isDev: boolean, getEnv: EnvGetter) {
-  const keys = isDev ? DEV_KEYS : PROD_KEYS;
+export function getDBEnv(isProduction: boolean, getEnv: EnvGetter) {
+  const keys = isProduction ? PROD_KEYS : DEV_KEYS;
 
   return {
     host: getEnv(keys.host),

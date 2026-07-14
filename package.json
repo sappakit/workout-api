@@ -22,7 +22,8 @@
     "migration:generate": "pnpm typeorm migration:generate db/migrations/new_migration -d db/data-source.ts",
     "migration:run": "pnpm typeorm migration:run -d db/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d db/data-source.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "ts-node -r tsconfig-paths/register db/seeds/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

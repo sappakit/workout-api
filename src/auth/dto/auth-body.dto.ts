@@ -48,6 +48,10 @@ export class RegisterDto {
   lastName?: string;
 }
 
+export type CreateUserInput = RegisterDto & {
+  roleCode: string;
+};
+
 export class RefreshDto {
   @IsNotEmpty()
   @IsString()
