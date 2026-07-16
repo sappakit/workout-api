@@ -2,6 +2,7 @@ import { Menu, Role, RoleMenu, User, UserProfile } from './entities/auth';
 import {
   Equipment,
   Exercise,
+  ExerciseCategory,
   ExerciseEquipment,
   ExerciseMedia,
   ExerciseMuscle,
@@ -35,6 +36,7 @@ export const AllEntities = [
   ExerciseEquipment,
   ExerciseMuscle,
   ExerciseUserStat,
+  ExerciseCategory,
 
   Workout,
   WorkoutExercise,

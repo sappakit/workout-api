@@ -4,7 +4,6 @@ import {
   DifficultyLevel,
   ExerciseOrigin,
   ExerciseStatus,
-  ExerciseType,
 } from 'src/workout/enums/workout.enum';
 import {
   Check,
@@ -16,6 +15,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import {
+  ExerciseCategory,
   ExerciseEquipment,
   ExerciseMedia,
   ExerciseMuscle,
@@ -64,21 +64,14 @@ const EXERCISE_USER_SOURCE_CHECK = `
 @Check('CHK_exercises_source_identity', EXERCISE_SOURCE_IDENTITY_CHECK)
 @Check('CHK_exercises_user_source', EXERCISE_USER_SOURCE_CHECK)
 @Index(['owner'])
+@Index(['category'])
 @Index(['source', 'source_external_id'], { unique: true })
 @Entity({ schema: 'workout', name: 'exercises' })
 export class Exercise extends BaseEntity {
-  @Column({
-    type: 'varchar',
-    length: 20,
-    default: ExerciseOrigin.SYSTEM,
-  })
+  @Column({ type: 'varchar', length: 20, default: ExerciseOrigin.SYSTEM })
   origin: ExerciseOrigin;
 
-  @Column({
-    type: 'varchar',
-    length: 20,
-    default: ExerciseStatus.DRAFT,
-  })
+  @Column({ type: 'varchar', length: 20, default: ExerciseStatus.DRAFT })
   status: ExerciseStatus;
 
   @Column({ type: 'varchar', length: 150 })
@@ -86,9 +79,6 @@ export class Exercise extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   description?: string;
-
-  @Column({ type: 'varchar', length: 30 })
-  exercise_type: ExerciseType;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   difficulty_level?: DifficultyLevel;
@@ -117,11 +107,17 @@ export class Exercise extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   demo_link?: string;
 
-  @Column({ type: 'text', nullable: true })
-  how_to_perform?: string;
+  @Column({ type: 'text', array: true, nullable: true })
+  how_to_perform?: string[] | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   source_external_id?: string;
+
+  @ManyToOne(() => ExerciseCategory, (category) => category.exercises, {
+    nullable: false,
+  })
+  @JoinColumn({ name: 'exercise_category_id' })
+  category: ExerciseCategory;
 
   @ManyToOne(() => ExerciseSource, (source) => source.exercises, {
     nullable: true,
@@ -139,10 +135,16 @@ export class Exercise extends BaseEntity {
   @OneToMany(() => ExerciseMedia, (media) => media.exercise)
   media: ExerciseMedia[];
 
-  @OneToMany(() => WorkoutExercise, (we) => we.exercise)
+  @OneToMany(
+    () => WorkoutExercise,
+    (workoutExercise) => workoutExercise.exercise,
+  )
   workout_exercises: WorkoutExercise[];
 
-  @OneToMany(() => WorkoutSessionExercise, (wse) => wse.exercise)
+  @OneToMany(
+    () => WorkoutSessionExercise,
+    (sessionExercise) => sessionExercise.exercise,
+  )
   session_exercises: WorkoutSessionExercise[];
 
   @OneToMany(() => ExerciseUserStat, (stat) => stat.exercise)
@@ -154,6 +156,6 @@ export class Exercise extends BaseEntity {
   )
   equipment_links: ExerciseEquipment[];
 
-  @OneToMany(() => ExerciseMuscle, (em) => em.exercise)
+  @OneToMany(() => ExerciseMuscle, (exerciseMuscle) => exerciseMuscle.exercise)
   muscles: ExerciseMuscle[];
 }

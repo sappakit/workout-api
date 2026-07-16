@@ -1,3 +1,4 @@
+export * from './exercise-category.entity';
 export * from './exercise-equipment.entity';
 export * from './exercise-media.entity';
 export * from './exercise-muscles.entity';
