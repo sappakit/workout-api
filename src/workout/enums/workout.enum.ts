@@ -14,6 +14,11 @@ export enum ExerciseOrigin {
   USER = 'user',
 }
 
+export enum ExerciseMuscleRole {
+  PRIMARY = 'primary',
+  SECONDARY = 'secondary',
+}
+
 export enum ExerciseStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',

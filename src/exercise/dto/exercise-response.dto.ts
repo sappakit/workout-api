@@ -8,9 +8,9 @@ import {
   DifficultyLevel,
   EquipmentCategory,
   ExerciseMediaType,
+  ExerciseMuscleRole,
   ExerciseOrigin,
   ExerciseStatus,
-  ExerciseType,
 } from 'src/workout/enums/workout.enum';
 
 export class MuscleDto {
@@ -20,7 +20,37 @@ export class MuscleDto {
 
   @Expose()
   @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
   name: string;
+}
+
+export class ExerciseCategoryDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
+  name: string;
+
+  @Expose()
+  @ApiPropertyOptional({ nullable: true })
+  description?: string | null;
+
+  @Expose({ name: 'display_order' })
+  @ApiProperty()
+  displayOrder: number;
+
+  @Expose({ name: 'is_active' })
+  @ApiProperty()
+  isActive: boolean;
 }
 
 export class EquipmentDto {
@@ -30,10 +60,14 @@ export class EquipmentDto {
 
   @Expose()
   @ApiProperty()
-  name: string;
+  code: string;
 
   @Expose()
   @ApiProperty()
+  name: string;
+
+  @Expose()
+  @ApiProperty({ enum: EquipmentCategory })
   category: EquipmentCategory;
 }
 
@@ -41,6 +75,10 @@ class ExerciseMuscleItemDto {
   @Expose()
   @ApiProperty()
   id: number;
+
+  @Expose()
+  @ApiProperty({ enum: ExerciseMuscleRole })
+  role: ExerciseMuscleRole;
 
   @Expose()
   @Type(() => MuscleDto)
@@ -195,9 +233,12 @@ export class ExerciseDto extends ExerciseConfigDto {
   @ApiPropertyOptional({ nullable: true })
   description?: string | null;
 
-  @Expose({ name: 'exercise_type' })
-  @ApiProperty({ enum: ExerciseType })
-  exerciseType: ExerciseType;
+  @Expose()
+  @Type(() => ExerciseCategoryDto)
+  @ApiProperty({
+    type: () => ExerciseCategoryDto,
+  })
+  category: ExerciseCategoryDto;
 
   @Expose({ name: 'difficulty_level' })
   @ApiPropertyOptional({
@@ -211,8 +252,11 @@ export class ExerciseDto extends ExerciseConfigDto {
   demoLink?: string | null;
 
   @Expose({ name: 'how_to_perform' })
-  @ApiPropertyOptional({ nullable: true })
-  howToPerform?: string | null;
+  @ApiPropertyOptional({
+    type: [String],
+    nullable: true,
+  })
+  howToPerform?: string[] | null;
 
   @Expose({ name: 'source_external_id' })
   @ApiPropertyOptional({ nullable: true })

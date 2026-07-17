@@ -1,19 +1,25 @@
+import { ExerciseMuscleRole } from 'src/workout/enums/workout.enum';
 import {
+  Column,
   Entity,
-  ManyToOne,
-  JoinColumn,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Exercise } from '.';
 import { Muscle } from '../shared';
 
 @Index(['muscle'])
+@Index(['exercise', 'role'])
 @Index(['exercise', 'muscle'], { unique: true })
 @Entity({ schema: 'workout', name: 'exercise_muscles' })
 export class ExerciseMuscle {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ type: 'varchar', length: 20 })
+  role: ExerciseMuscleRole;
 
   @ManyToOne(() => Exercise, (exercise) => exercise.muscles, {
     nullable: false,

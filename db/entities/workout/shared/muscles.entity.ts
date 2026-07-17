@@ -1,16 +1,19 @@
+import { BaseEntity } from 'db/entities/shared';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { ExerciseMuscle } from '../exercise';
 import { WorkoutMuscle } from '../workout';
-import { BaseEntity } from 'db/entities/shared';
 
 @Entity({ schema: 'workout', name: 'muscles' })
 export class Muscle extends BaseEntity {
   @Column({ type: 'varchar', length: 50, unique: true })
+  code: string;
+
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @OneToMany(() => ExerciseMuscle, (em) => em.muscle)
+  @OneToMany(() => ExerciseMuscle, (exerciseMuscle) => exerciseMuscle.muscle)
   exercise_links: ExerciseMuscle[];
 
-  @OneToMany(() => WorkoutMuscle, (wm) => wm.muscle)
+  @OneToMany(() => WorkoutMuscle, (workoutMuscle) => workoutMuscle.muscle)
   workout_links: WorkoutMuscle[];
 }
