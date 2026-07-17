@@ -1,15 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ExerciseCategory } from 'db/entities/workout';
+import { Equipment, ExerciseCategory, Muscle } from 'db/entities/workout';
 import { Repository } from 'typeorm';
 import { mapFreeExerciseDbExercise } from './mappers/exercise.mapper';
-import { DatasetInspectionReport } from './types/import-result.types';
+import { analyzeFreeExerciseDbDataset } from './utils/analyze-dataset.util';
 import {
-  analyzeFreeExerciseDbDataset,
-  countValues,
-} from './utils/analyze-dataset.util';
+  getRequiredCategoryCodes,
+  getRequiredEquipmentCodes,
+  getRequiredMuscleCodes,
+} from './utils/collect-required-codes.util';
+import {
+  buildInspectionReport,
+  writeImportReport,
+} from './utils/inspection-report.util';
 import { loadFreeExerciseDbDataset } from './utils/load-dataset.util';
-import { writeImportReport } from './utils/write-import-report.util';
+import {
+  validateMappedValues,
+  validateNoDuplicateSourceIds,
+  validateRequiredCodesExist,
+} from './utils/validate-import.util';
 
 type ImportOptions = {
   filePath?: string;
@@ -24,129 +33,120 @@ export class FreeExerciseDbImporterService {
   constructor(
     @InjectRepository(ExerciseCategory)
     private readonly exerciseCategoryRepo: Repository<ExerciseCategory>,
+
+    @InjectRepository(Equipment)
+    private readonly equipmentRepo: Repository<Equipment>,
+
+    @InjectRepository(Muscle)
+    private readonly muscleRepo: Repository<Muscle>,
   ) {}
 
   async run(options: ImportOptions = {}): Promise<void> {
     const { filePath, reportPath, dryRun = true } = options;
 
+    // Load and analyze the source dataset.
     this.logger.log('Loading Free Exercise DB dataset');
 
     const sourceExercises = await loadFreeExerciseDbDataset(filePath);
-
     const analysis = analyzeFreeExerciseDbDataset(sourceExercises);
 
+    // Convert source records into the app's import format.
     const mappedExercises = sourceExercises.map(mapFreeExerciseDbExercise);
 
-    const unmappedCategories = countValues(
-      mappedExercises
-        .filter((exercise) => exercise.categoryCode === null)
-        .map((exercise) => exercise.sourceCategory),
-    );
+    // Build and save the dataset inspection report.
+    const report = buildInspectionReport(mappedExercises, analysis);
 
-    const unmappedLevels = countValues(
-      mappedExercises
-        .filter((exercise) => exercise.difficultyLevel === null)
-        .map((exercise) => exercise.sourceLevel),
-    );
-
-    const report: DatasetInspectionReport = {
-      generatedAt: new Date().toISOString(),
-      analysis,
-      unmapped: {
-        categories: unmappedCategories,
-        levels: unmappedLevels,
-      },
-    };
-
-    if (analysis.duplicateIds.length > 0) {
-      throw new Error(
-        `Duplicate source exercise IDs found: ${analysis.duplicateIds.join(', ')}`,
-      );
-    }
+    validateNoDuplicateSourceIds(analysis.duplicateIds);
 
     const savedReportPath = await writeImportReport(report, reportPath);
 
     this.logger.log(`Dataset inspection report written to: ${savedReportPath}`);
 
-    this.validateMappedValues(mappedExercises);
+    // Ensure every source value has a supported app mapping.
+    validateMappedValues(mappedExercises);
 
-    const categoriesByCode = await this.loadCategoriesByCode();
+    // Load seeded reference data from the database.
+    const [categoriesByCode, equipmentByCode, musclesByCode] =
+      await Promise.all([
+        this.loadCategoriesByCode(),
+        this.loadEquipmentByCode(),
+        this.loadMusclesByCode(),
+      ]);
 
-    this.validateCategoriesExist(mappedExercises, categoriesByCode);
-
-    this.logger.log(
-      `Validated ${categoriesByCode.size} exercise categories against the database`,
+    // Ensure every mapped code exists in the database.
+    validateRequiredCodesExist(
+      'exercise categories',
+      getRequiredCategoryCodes(mappedExercises),
+      categoriesByCode,
+      'exercise-category',
     );
 
+    validateRequiredCodesExist(
+      'equipment records',
+      getRequiredEquipmentCodes(mappedExercises),
+      equipmentByCode,
+      'equipment',
+    );
+
+    validateRequiredCodesExist(
+      'muscles',
+      getRequiredMuscleCodes(mappedExercises),
+      musclesByCode,
+      'muscle',
+    );
+
+    this.logDatabaseValidationResults(
+      categoriesByCode.size,
+      equipmentByCode.size,
+      musclesByCode.size,
+    );
+
+    // Stop after validation when running in dry-run mode.
     if (dryRun) {
       this.logger.log('Inspection completed. No database rows were inserted.');
-
       return;
     }
 
     throw new Error('Database persistence has not been implemented yet.');
   }
 
-  private validateMappedValues(
-    exercises: ReturnType<typeof mapFreeExerciseDbExercise>[],
-  ): void {
-    const unmappedCategoryValues = [
-      ...new Set(
-        exercises
-          .filter((exercise) => exercise.categoryCode === null)
-          .map((exercise) => exercise.sourceCategory),
-      ),
-    ];
-
-    if (unmappedCategoryValues.length > 0) {
-      throw new Error(
-        `Unsupported source categories found: ${unmappedCategoryValues.join(', ')}`,
-      );
-    }
-
-    const unmappedLevelValues = [
-      ...new Set(
-        exercises
-          .filter((exercise) => exercise.difficultyLevel === null)
-          .map((exercise) => exercise.sourceLevel),
-      ),
-    ];
-
-    if (unmappedLevelValues.length > 0) {
-      throw new Error(
-        `Unsupported source difficulty levels found: ${unmappedLevelValues.join(', ')}`,
-      );
-    }
-  }
-
+  // Load exercise categories and index them by stable code.
   private async loadCategoriesByCode(): Promise<Map<string, ExerciseCategory>> {
     const categories = await this.exerciseCategoryRepo.find();
 
     return new Map(categories.map((category) => [category.code, category]));
   }
 
-  private validateCategoriesExist(
-    exercises: ReturnType<typeof mapFreeExerciseDbExercise>[],
-    categoriesByCode: Map<string, ExerciseCategory>,
+  // Load equipment records and index them by stable code.
+  private async loadEquipmentByCode(): Promise<Map<string, Equipment>> {
+    const equipmentItems = await this.equipmentRepo.find();
+
+    return new Map(
+      equipmentItems.map((equipment) => [equipment.code, equipment]),
+    );
+  }
+
+  // Load muscles and index them by stable code.
+  private async loadMusclesByCode(): Promise<Map<string, Muscle>> {
+    const muscles = await this.muscleRepo.find();
+
+    return new Map(muscles.map((muscle) => [muscle.code, muscle]));
+  }
+
+  // Log how many reference records were successfully loaded and validated.
+  private logDatabaseValidationResults(
+    categoryCount: number,
+    equipmentCount: number,
+    muscleCount: number,
   ): void {
-    const requiredCategoryCodes = new Set(
-      exercises
-        .map((exercise) => exercise.categoryCode)
-        .filter((code): code is string => code !== null),
+    this.logger.log(
+      `Validated ${categoryCount} exercise categories against the database`,
     );
 
-    const missingCategoryCodes = [...requiredCategoryCodes].filter(
-      (code) => !categoriesByCode.has(code),
+    this.logger.log(
+      `Validated ${equipmentCount} equipment records against the database`,
     );
 
-    if (missingCategoryCodes.length > 0) {
-      throw new Error(
-        [
-          'Mapped exercise categories are missing from the database.',
-          `Missing codes: ${missingCategoryCodes.join(', ')}`,
-          'Run the exercise-category seed before running the importer.',
-        ].join(' '),
-      );
-    }
+    this.logger.log(`Validated ${muscleCount} muscles against the database`);
   }
 }

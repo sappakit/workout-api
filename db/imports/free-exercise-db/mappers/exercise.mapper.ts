@@ -17,6 +17,16 @@ export function mapFreeExerciseDbExercise(
     howToPerform: mapInstructions(source.instructions),
 
     categoryCode: mapExerciseCategoryCode(source.category),
+    equipmentCode: mapEquipmentCode(source.equipment),
+
+    primaryMuscleCodes: source.primaryMuscles
+      .map(mapMuscleCode)
+      .filter((code): code is MuscleCode => code !== null),
+
+    secondaryMuscleCodes: source.secondaryMuscles
+      .map(mapMuscleCode)
+      .filter((code): code is MuscleCode => code !== null),
+
     difficultyLevel: mapDifficultyLevel(source.level),
 
     origin: ExerciseOrigin.SYSTEM,
@@ -25,9 +35,8 @@ export function mapFreeExerciseDbExercise(
     sourceCategory: source.category,
     sourceLevel: source.level,
     sourceEquipment: source.equipment,
-
-    primaryMuscles: source.primaryMuscles,
-    secondaryMuscles: source.secondaryMuscles,
+    sourcePrimaryMuscles: source.primaryMuscles,
+    sourceSecondaryMuscles: source.secondaryMuscles,
 
     imagePaths: source.images,
   };
@@ -38,11 +47,7 @@ function mapInstructions(instructions: string[]): string[] | null {
     .map((instruction) => instruction.trim())
     .filter((instruction) => instruction.length > 0);
 
-  if (normalizedInstructions.length === 0) {
-    return null;
-  }
-
-  return normalizedInstructions;
+  return normalizedInstructions.length > 0 ? normalizedInstructions : null;
 }
 
 const DIFFICULTY_LEVEL_MAP: Record<string, DifficultyLevel> = {
@@ -53,9 +58,7 @@ const DIFFICULTY_LEVEL_MAP: Record<string, DifficultyLevel> = {
 };
 
 function mapDifficultyLevel(level: string): DifficultyLevel | null {
-  const normalizedLevel = level.trim().toLowerCase();
-
-  return DIFFICULTY_LEVEL_MAP[normalizedLevel] ?? null;
+  return DIFFICULTY_LEVEL_MAP[normalizeValue(level)] ?? null;
 }
 
 const EXERCISE_CATEGORY_CODES = [
@@ -83,7 +86,80 @@ const EXERCISE_CATEGORY_CODE_MAP: Record<string, ExerciseCategoryCode> = {
 function mapExerciseCategoryCode(
   category: string,
 ): ExerciseCategoryCode | null {
-  const normalizedCategory = category.trim().toLowerCase();
+  return EXERCISE_CATEGORY_CODE_MAP[normalizeValue(category)] ?? null;
+}
 
-  return EXERCISE_CATEGORY_CODE_MAP[normalizedCategory] ?? null;
+const EQUIPMENT_CODE_MAP = {
+  bands: 'resistance-band',
+  barbell: 'barbell',
+  'body only': 'body-only',
+  cable: 'cable',
+  dumbbell: 'dumbbell',
+  'exercise ball': 'exercise-ball',
+  'e-z curl bar': 'ez-curl-bar',
+  'foam roll': 'foam-roller',
+  kettlebells: 'kettlebell',
+  machine: 'machine',
+  'medicine ball': 'medicine-ball',
+  none: null,
+  other: 'other',
+} as const;
+
+type EquipmentCode = Exclude<
+  (typeof EQUIPMENT_CODE_MAP)[keyof typeof EQUIPMENT_CODE_MAP],
+  null
+>;
+
+export function isSupportedEquipmentValue(equipment: string | null): boolean {
+  if (equipment === null) {
+    return true;
+  }
+
+  return Object.hasOwn(EQUIPMENT_CODE_MAP, normalizeValue(equipment));
+}
+
+function mapEquipmentCode(equipment: string | null): EquipmentCode | null {
+  if (equipment === null) {
+    return null;
+  }
+
+  const normalizedEquipment = normalizeValue(equipment);
+
+  if (!Object.hasOwn(EQUIPMENT_CODE_MAP, normalizedEquipment)) {
+    return null;
+  }
+
+  return EQUIPMENT_CODE_MAP[
+    normalizedEquipment as keyof typeof EQUIPMENT_CODE_MAP
+  ];
+}
+
+const MUSCLE_CODE_MAP = {
+  abdominals: 'abdominals',
+  abductors: 'abductors',
+  adductors: 'adductors',
+  biceps: 'biceps',
+  calves: 'calves',
+  chest: 'chest',
+  forearms: 'forearms',
+  glutes: 'glutes',
+  hamstrings: 'hamstrings',
+  lats: 'lats',
+  'lower back': 'lower-back',
+  'middle back': 'middle-back',
+  neck: 'neck',
+  quadriceps: 'quadriceps',
+  shoulders: 'shoulders',
+  traps: 'traps',
+  triceps: 'triceps',
+} as const;
+
+type MuscleCode = (typeof MUSCLE_CODE_MAP)[keyof typeof MUSCLE_CODE_MAP];
+
+export function mapMuscleCode(muscle: string): MuscleCode | null {
+  return MUSCLE_CODE_MAP[normalizeValue(muscle)] ?? null;
+}
+
+function normalizeValue(value: string): string {
+  return value.trim().toLowerCase();
 }

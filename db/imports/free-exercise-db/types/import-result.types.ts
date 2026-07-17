@@ -12,6 +12,10 @@ export type ExerciseMetadataImportRecord = {
   howToPerform: string[] | null;
 
   categoryCode: string | null;
+  equipmentCode: string | null;
+  primaryMuscleCodes: string[];
+  secondaryMuscleCodes: string[];
+
   difficultyLevel: DifficultyLevel | null;
 
   origin: ExerciseOrigin;
@@ -20,9 +24,8 @@ export type ExerciseMetadataImportRecord = {
   sourceCategory: string;
   sourceLevel: string;
   sourceEquipment: string | null;
-
-  primaryMuscles: string[];
-  secondaryMuscles: string[];
+  sourcePrimaryMuscles: string[];
+  sourceSecondaryMuscles: string[];
 
   imagePaths: string[];
 };
@@ -51,5 +54,8 @@ export type DatasetInspectionReport = {
   unmapped: {
     categories: Record<string, number>;
     levels: Record<string, number>;
+    equipment: Record<string, number>;
+    primaryMuscles: Record<string, number>;
+    secondaryMuscles: Record<string, number>;
   };
 };
