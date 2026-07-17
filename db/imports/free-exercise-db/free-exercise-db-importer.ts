@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 import { INestApplicationContext, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { FreeExerciseDbImporterModule } from './free-exercise-db-importer.module';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
-import { FreeExerciseDbImportModule } from './import.module';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('FreeExerciseDbImport');
@@ -21,7 +21,7 @@ async function bootstrap(): Promise<void> {
     }
 
     app = await NestFactory.createApplicationContext(
-      FreeExerciseDbImportModule,
+      FreeExerciseDbImporterModule,
       {
         logger: ['log', 'warn', 'error'],
       },

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from 'db/entities/auth';
 import { Repository } from 'typeorm';
 import { ROLE_SEED_DATA } from '../data/auth.seed-data';
+import { runUpsertSeed } from '../utils/seed.util';
 
 @Injectable()
 export class RoleSeeder {
@@ -14,11 +15,12 @@ export class RoleSeeder {
   ) {}
 
   async run(): Promise<void> {
-    await this.roleRepo.upsert(ROLE_SEED_DATA, {
+    await runUpsertSeed({
+      repository: this.roleRepo,
+      data: ROLE_SEED_DATA,
       conflictPaths: ['code'],
-      skipUpdateIfNoValuesChanged: true,
+      entityName: 'roles',
+      logger: this.logger,
     });
-
-    this.logger.log(`Seeded ${ROLE_SEED_DATA.length} roles`);
   }
 }

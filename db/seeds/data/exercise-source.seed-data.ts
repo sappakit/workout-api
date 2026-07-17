@@ -1,4 +1,5 @@
 import { ExerciseSource } from 'db/entities/workout';
+import { SEED_ACTOR } from '../types/seed.types';
 
 export type ExerciseSourceSeedData = Pick<
   ExerciseSource,
@@ -27,7 +28,7 @@ export const EXERCISE_SOURCE_SEED_DATA = [
     source_version: null,
     source_commit_hash: null,
     imported_at: null,
-    created_by: 'exercise-source-seed',
-    updated_by: 'exercise-source-seed',
+    created_by: SEED_ACTOR,
+    updated_by: SEED_ACTOR,
   },
 ] satisfies ExerciseSourceSeedData[];

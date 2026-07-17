@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ExerciseSource } from 'db/entities/workout';
 import { Repository } from 'typeorm';
 import { EXERCISE_SOURCE_SEED_DATA } from '../data/exercise-source.seed-data';
+import { runUpsertSeed } from '../utils/seed.util';
 
 @Injectable()
 export class ExerciseSourceSeeder {
@@ -14,13 +15,12 @@ export class ExerciseSourceSeeder {
   ) {}
 
   async run(): Promise<void> {
-    await this.exerciseSourceRepo.upsert(EXERCISE_SOURCE_SEED_DATA, {
+    await runUpsertSeed({
+      repository: this.exerciseSourceRepo,
+      data: EXERCISE_SOURCE_SEED_DATA,
       conflictPaths: ['key'],
-      skipUpdateIfNoValuesChanged: true,
+      entityName: 'exercise sources',
+      logger: this.logger,
     });
-
-    this.logger.log(
-      `Seeded ${EXERCISE_SOURCE_SEED_DATA.length} exercise sources`,
-    );
   }
 }

@@ -11,6 +11,7 @@ export type ExerciseMetadataImportRecord = {
   description: string | null;
   howToPerform: string[] | null;
 
+  categoryCode: string | null;
   difficultyLevel: DifficultyLevel | null;
 
   origin: ExerciseOrigin;
@@ -48,6 +49,7 @@ export type DatasetInspectionReport = {
   analysis: DatasetAnalysis;
 
   unmapped: {
+    categories: Record<string, number>;
     levels: Record<string, number>;
   };
 };

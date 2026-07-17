@@ -16,6 +16,7 @@ export function mapFreeExerciseDbExercise(
     description: null,
     howToPerform: mapInstructions(source.instructions),
 
+    categoryCode: mapExerciseCategoryCode(source.category),
     difficultyLevel: mapDifficultyLevel(source.level),
 
     origin: ExerciseOrigin.SYSTEM,
@@ -44,19 +45,45 @@ function mapInstructions(instructions: string[]): string[] | null {
   return normalizedInstructions;
 }
 
+const DIFFICULTY_LEVEL_MAP: Record<string, DifficultyLevel> = {
+  beginner: DifficultyLevel.BEGINNER,
+  intermediate: DifficultyLevel.INTERMEDIATE,
+  expert: DifficultyLevel.ADVANCED,
+  advanced: DifficultyLevel.ADVANCED,
+};
+
 function mapDifficultyLevel(level: string): DifficultyLevel | null {
-  switch (level.toLowerCase()) {
-    case 'beginner':
-      return DifficultyLevel.BEGINNER;
+  const normalizedLevel = level.trim().toLowerCase();
 
-    case 'intermediate':
-      return DifficultyLevel.INTERMEDIATE;
+  return DIFFICULTY_LEVEL_MAP[normalizedLevel] ?? null;
+}
 
-    case 'expert':
-    case 'advanced':
-      return DifficultyLevel.ADVANCED;
+const EXERCISE_CATEGORY_CODES = [
+  'cardio',
+  'olympic-weightlifting',
+  'plyometrics',
+  'powerlifting',
+  'strength',
+  'stretching',
+  'strongman',
+] as const;
 
-    default:
-      return null;
-  }
+type ExerciseCategoryCode = (typeof EXERCISE_CATEGORY_CODES)[number];
+
+const EXERCISE_CATEGORY_CODE_MAP: Record<string, ExerciseCategoryCode> = {
+  cardio: 'cardio',
+  'olympic weightlifting': 'olympic-weightlifting',
+  plyometrics: 'plyometrics',
+  powerlifting: 'powerlifting',
+  strength: 'strength',
+  stretching: 'stretching',
+  strongman: 'strongman',
+};
+
+function mapExerciseCategoryCode(
+  category: string,
+): ExerciseCategoryCode | null {
+  const normalizedCategory = category.trim().toLowerCase();
+
+  return EXERCISE_CATEGORY_CODE_MAP[normalizedCategory] ?? null;
 }

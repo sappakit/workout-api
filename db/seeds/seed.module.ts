@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role } from 'db/entities/auth';
-import { ExerciseSource } from 'db/entities/workout';
+import { ExerciseCategory, ExerciseSource } from 'db/entities/workout';
 import { AuthModule } from 'src/auth/auth.module';
 import { seedEnvValidationSchema } from 'src/config/env.validation';
-import { createTypeOrmOptions } from 'src/config/typeorm.config';
+import { DatabaseModule } from 'src/database/database.module';
 import { SeedService } from './seed.service';
+import { ExerciseCategorySeeder } from './seeders/exercise-category.seeder';
 import { ExerciseSourceSeeder } from './seeders/exercise-source.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { UserSeeder } from './seeders/user.seeder';
@@ -17,15 +18,17 @@ import { UserSeeder } from './seeders/user.seeder';
       validationSchema: seedEnvValidationSchema,
     }),
 
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: createTypeOrmOptions,
-    }),
+    DatabaseModule,
+    TypeOrmModule.forFeature([Role, ExerciseSource, ExerciseCategory]),
 
-    TypeOrmModule.forFeature([Role, ExerciseSource]),
     AuthModule,
   ],
-  providers: [SeedService, RoleSeeder, UserSeeder, ExerciseSourceSeeder],
+  providers: [
+    SeedService,
+    RoleSeeder,
+    UserSeeder,
+    ExerciseSourceSeeder,
+    ExerciseCategorySeeder,
+  ],
 })
 export class SeedModule {}

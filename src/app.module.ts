@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { CommonModule } from './common/common.module';
 import { appEnvValidationSchema } from './config/env.validation';
-import { createTypeOrmOptions } from './config/typeorm.config';
+import { DatabaseModule } from './database/database.module';
 import { EmailModule } from './email/email.module';
 import { ExerciseModule } from './exercise/exercise.module';
 import { HashingModule } from './hashing/hashing.module';
@@ -20,12 +19,8 @@ import { WorkoutModule } from './workout/workout.module';
       validationSchema: appEnvValidationSchema,
     }),
 
-    // Connect to datatbase
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: createTypeOrmOptions,
-    }),
+    // Connect to database
+    DatabaseModule,
 
     AuthModule,
     HashingModule,

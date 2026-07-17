@@ -24,7 +24,7 @@
     "migration:revert": "pnpm typeorm migration:revert -d db/data-source.ts",
     "typecheck": "tsc --noEmit",
     "seed": "ts-node -r tsconfig-paths/register db/seeds/seed.ts",
-    "import:exercises:inspect": "ts-node -r tsconfig-paths/register db/imports/free-exercise-db/import.ts"
+    "import:exercises:inspect": "ts-node -r tsconfig-paths/register db/imports/free-exercise-db/free-exercise-db-importer.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

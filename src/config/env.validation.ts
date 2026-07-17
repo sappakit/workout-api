@@ -51,21 +51,33 @@ const seedValidationSchema = Joi.object({
   SEED_USER_PASSWORD: Joi.string().min(8).required(),
 }).unknown(true);
 
+function combineValidationSchemas(
+  schemas: Joi.ObjectSchema[],
+): Joi.ObjectSchema {
+  return schemas
+    .reduce(
+      (combinedSchema, schema) => combinedSchema.concat(schema),
+      Joi.object(),
+    )
+    .unknown(true);
+}
+
 // Main API environment
-export const appEnvValidationSchema = [
+export const appEnvValidationSchema = combineValidationSchemas([
   dbValidationSchema,
   jwtValidationSchema,
   hashingValidationSchema,
   redisValidationSchema,
-]
-  .reduce((acc, schema) => acc.concat(schema), Joi.object())
-  .unknown(true);
+]);
 
 // Seed command environment
-export const seedEnvValidationSchema = [
+export const seedEnvValidationSchema = combineValidationSchemas([
   dbValidationSchema,
   hashingValidationSchema,
   seedValidationSchema,
-]
-  .reduce((acc, schema) => acc.concat(schema), Joi.object())
-  .unknown(true);
+]);
+
+// Import command environment
+export const importEnvValidationSchema = combineValidationSchemas([
+  dbValidationSchema,
+]);
