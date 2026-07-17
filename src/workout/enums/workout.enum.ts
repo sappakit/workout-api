@@ -48,8 +48,13 @@ export enum WorkoutSessionStatus {
 export enum EquipmentCategory {
   FREE_WEIGHT = 'free_weight',
   MACHINE = 'machine',
+  CABLE = 'cable',
   BODYWEIGHT = 'bodyweight',
+  RESISTANCE = 'resistance',
+  STABILITY = 'stability',
+  RECOVERY = 'recovery',
   ACCESSORY = 'accessory',
+  OTHER = 'other',
 }
 
 export enum WorkoutCurrentMode {

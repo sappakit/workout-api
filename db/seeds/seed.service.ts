@@ -1,34 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EquipmentSeeder } from './seeders/equipment.seeder';
 import { ExerciseCategorySeeder } from './seeders/exercise-category.seeder';
 import { ExerciseSourceSeeder } from './seeders/exercise-source.seeder';
+import { MuscleSeeder } from './seeders/muscle.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { UserSeeder } from './seeders/user.seeder';
-import { Seeder, SeedName } from './types/seed.types';
-
-type SingleSeedName = Exclude<SeedName, 'all'>;
+import {
+  SEED_ORDER,
+  Seeder,
+  SeedName,
+  SingleSeedName,
+} from './types/seed.types';
 
 @Injectable()
 export class SeedService {
   private readonly logger = new Logger(SeedService.name);
   private readonly seeders: Record<SingleSeedName, Seeder>;
-  private readonly seedOrder: SingleSeedName[] = [
-    'role',
-    'user',
-    'exercise-source',
-    'exercise-category',
-  ];
 
   constructor(
     private readonly roleSeeder: RoleSeeder,
     private readonly userSeeder: UserSeeder,
     private readonly exerciseSourceSeeder: ExerciseSourceSeeder,
     private readonly exerciseCategorySeeder: ExerciseCategorySeeder,
+    private readonly equipmentSeeder: EquipmentSeeder,
+    private readonly muscleSeeder: MuscleSeeder,
   ) {
     this.seeders = {
       role: this.roleSeeder,
       user: this.userSeeder,
       'exercise-source': this.exerciseSourceSeeder,
       'exercise-category': this.exerciseCategorySeeder,
+      equipment: this.equipmentSeeder,
+      muscle: this.muscleSeeder,
     };
   }
 
@@ -45,7 +48,7 @@ export class SeedService {
   }
 
   private async runAll(): Promise<void> {
-    for (const seedName of this.seedOrder) {
+    for (const seedName of SEED_ORDER) {
       await this.seeders[seedName].run();
     }
   }
