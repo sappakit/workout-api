@@ -78,20 +78,20 @@ export class Exercise extends BaseEntity {
   name: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  difficulty_level?: DifficultyLevel;
+  difficulty_level: DifficultyLevel | null;
 
   // Strength: per set. Cardio: per minute.
   @Column({ type: 'int', nullable: true })
-  default_calories_burned?: number;
+  default_calories_burned: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  default_duration?: number;
+  default_duration: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  default_rest_time?: number;
+  default_rest_time: number | null;
 
   @Column({
     type: 'varchar',
@@ -99,19 +99,19 @@ export class Exercise extends BaseEntity {
     nullable: true,
     comment: 'minimum-maximum',
   })
-  default_reps_range?: string;
+  default_reps_range: string | null;
 
   @Column({ type: 'int', nullable: true })
-  default_sets?: number;
+  default_sets: number | null;
 
   @Column({ type: 'text', nullable: true })
-  demo_link?: string;
+  demo_link: string | null;
 
   @Column({ type: 'text', array: true, nullable: true })
-  how_to_perform?: string[] | null;
+  how_to_perform: string[] | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  source_external_id?: string;
+  source_external_id: string | null;
 
   @ManyToOne(() => ExerciseCategory, (category) => category.exercises, {
     nullable: false,
@@ -124,13 +124,13 @@ export class Exercise extends BaseEntity {
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'source_id' })
-  source?: ExerciseSource;
+  source: ExerciseSource | null;
 
   @ManyToOne(() => User, (user) => user.owned_exercises, {
     nullable: true,
   })
   @JoinColumn({ name: 'owner_user_id' })
-  owner?: User;
+  owner: User | null;
 
   @OneToMany(() => ExerciseMedia, (media) => media.exercise)
   media: ExerciseMedia[];

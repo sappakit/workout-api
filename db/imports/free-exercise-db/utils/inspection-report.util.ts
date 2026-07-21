@@ -4,20 +4,70 @@ import {
   isSupportedEquipmentValue,
   mapMuscleCode,
 } from '../mappers/exercise.mapper';
+import { FreeExerciseDbExercise } from '../types/free-exercise-db.types';
 import {
+  DatasetAnalysis,
   DatasetInspectionReport,
   ExerciseMetadataImportRecord,
 } from '../types/import-result.types';
-import { countValues } from './analyze-dataset.util';
+
+// Analyze the raw Free Exercise DB dataset.
+export function analyzeFreeExerciseDbDataset(
+  exercises: FreeExerciseDbExercise[],
+): DatasetAnalysis {
+  const idCounts = countValues(exercises.map((exercise) => exercise.id));
+
+  const duplicateIds = Object.entries(idCounts)
+    .filter(([, count]) => count > 1)
+    .map(([id]) => id)
+    .sort();
+
+  return {
+    totalExercises: exercises.length,
+    duplicateIds,
+
+    categories: countValues(exercises.map((exercise) => exercise.category)),
+
+    levels: countValues(exercises.map((exercise) => exercise.level)),
+
+    equipment: countValues(
+      exercises.map((exercise) => exercise.equipment ?? 'none'),
+    ),
+
+    forceTypes: countValues(
+      exercises.map((exercise) => exercise.force ?? 'none'),
+    ),
+
+    mechanics: countValues(
+      exercises.map((exercise) => exercise.mechanic ?? 'none'),
+    ),
+
+    primaryMuscles: countValues(
+      exercises.flatMap((exercise) => exercise.primaryMuscles),
+    ),
+
+    secondaryMuscles: countValues(
+      exercises.flatMap((exercise) => exercise.secondaryMuscles),
+    ),
+
+    missingInstructions: exercises.filter(
+      (exercise) => exercise.instructions.length === 0,
+    ).length,
+
+    missingImages: exercises.filter((exercise) => exercise.images.length === 0)
+      .length,
+  };
+}
 
 // Build the inspection report and count unsupported source values.
 export function buildInspectionReport(
   exercises: ExerciseMetadataImportRecord[],
-  analysis: DatasetInspectionReport['analysis'],
+  analysis: DatasetAnalysis,
 ): DatasetInspectionReport {
   return {
     generatedAt: new Date().toISOString(),
     analysis,
+
     unmapped: {
       categories: countValues(
         exercises
@@ -77,4 +127,17 @@ export async function writeImportReport(
   await writeFile(resolvedPath, JSON.stringify(report, null, 2), 'utf8');
 
   return resolvedPath;
+}
+
+// Count how many times each value appears and return alphabetically sorted keys.
+function countValues(values: string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+
+  for (const value of values) {
+    counts[value] = (counts[value] ?? 0) + 1;
+  }
+
+  return Object.fromEntries(
+    Object.entries(counts).sort(([left], [right]) => left.localeCompare(right)),
+  );
 }

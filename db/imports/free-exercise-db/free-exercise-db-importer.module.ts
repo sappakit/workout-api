@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Equipment, ExerciseCategory, Muscle } from 'db/entities/workout';
+import {
+  Equipment,
+  ExerciseCategory,
+  ExerciseSource,
+  Muscle,
+} from 'db/entities/workout';
 import { importEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
+import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
 
 @Module({
   imports: [
@@ -13,8 +19,13 @@ import { FreeExerciseDbImporterService } from './free-exercise-db-importer.servi
     }),
 
     DatabaseModule,
-    TypeOrmModule.forFeature([ExerciseCategory, Equipment, Muscle]),
+    TypeOrmModule.forFeature([
+      ExerciseCategory,
+      Equipment,
+      Muscle,
+      ExerciseSource,
+    ]),
   ],
-  providers: [FreeExerciseDbImporterService],
+  providers: [FreeExerciseDbImporterService, FreeExerciseDbPersistenceService],
 })
 export class FreeExerciseDbImporterModule {}

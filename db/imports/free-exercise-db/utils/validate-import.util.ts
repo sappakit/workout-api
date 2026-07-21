@@ -4,6 +4,40 @@ import {
 } from '../mappers/exercise.mapper';
 import { ExerciseMetadataImportRecord } from '../types/import-result.types';
 
+// Collect every unique category code required by the dataset.
+export function getRequiredCategoryCodes(
+  exercises: ExerciseMetadataImportRecord[],
+): Set<string> {
+  return new Set(
+    exercises
+      .map((exercise) => exercise.categoryCode)
+      .filter((code): code is string => code !== null),
+  );
+}
+
+// Collect every unique equipment code required by the dataset.
+export function getRequiredEquipmentCodes(
+  exercises: ExerciseMetadataImportRecord[],
+): Set<string> {
+  return new Set(
+    exercises
+      .map((exercise) => exercise.equipmentCode)
+      .filter((code): code is string => code !== null),
+  );
+}
+
+// Collect every unique primary and secondary muscle code.
+export function getRequiredMuscleCodes(
+  exercises: ExerciseMetadataImportRecord[],
+): Set<string> {
+  return new Set(
+    exercises.flatMap((exercise) => [
+      ...exercise.primaryMuscleCodes,
+      ...exercise.secondaryMuscleCodes,
+    ]),
+  );
+}
+
 // Ensure source exercise IDs are unique before performing any upserts.
 export function validateNoDuplicateSourceIds(duplicateIds: string[]): void {
   if (duplicateIds.length === 0) {
@@ -13,6 +47,16 @@ export function validateNoDuplicateSourceIds(duplicateIds: string[]): void {
   throw new Error(
     `Duplicate source exercise IDs found: ${duplicateIds.join(', ')}`,
   );
+}
+
+// Ensure every source value has a supported app mapping.
+export function validateMappedValues(
+  exercises: ExerciseMetadataImportRecord[],
+): void {
+  validateCategories(exercises);
+  validateDifficultyLevels(exercises);
+  validateEquipment(exercises);
+  validateMuscles(exercises);
 }
 
 // Ensure every required mapped code has a corresponding database record.
@@ -37,16 +81,6 @@ export function validateRequiredCodesExist<Entity>(
       `Run the ${seedName} seed before running the importer.`,
     ].join(' '),
   );
-}
-
-// Ensure every source value has a supported app mapping.
-export function validateMappedValues(
-  exercises: ExerciseMetadataImportRecord[],
-): void {
-  validateCategories(exercises);
-  validateDifficultyLevels(exercises);
-  validateEquipment(exercises);
-  validateMuscles(exercises);
 }
 
 // Ensure every source category has a category-code mapping.
