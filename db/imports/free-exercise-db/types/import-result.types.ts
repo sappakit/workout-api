@@ -4,6 +4,7 @@ import {
   ExerciseStatus,
 } from 'src/workout/enums/workout.enum';
 
+// Metadata
 export type ExerciseMetadataImportRecord = {
   sourceExternalId: string;
 
@@ -30,6 +31,33 @@ export type ExerciseMetadataImportRecord = {
   imagePaths: string[];
 };
 
+// Image
+export type ExerciseImageImportItem = {
+  sourcePath: string;
+  absolutePath: string;
+  displayOrder: number;
+  isPrimary: boolean;
+};
+
+export type ExerciseImageImportRecord = {
+  sourceExternalId: string;
+  images: ExerciseImageImportItem[];
+};
+
+export type MissingExerciseImageFile = {
+  sourceExternalId: string;
+  sourcePath: string;
+  absolutePath: string;
+};
+
+export type ExerciseImageInspectionResult = {
+  totalExercises: number;
+  totalImages: number;
+  exercisesWithoutImages: string[];
+  missingFiles: MissingExerciseImageFile[];
+};
+
+// Analysis
 export type DatasetAnalysis = {
   totalExercises: number;
   duplicateIds: string[];
@@ -47,15 +75,17 @@ export type DatasetAnalysis = {
   missingImages: number;
 };
 
+type DatasetUnmappedValues = {
+  categories: Record<string, number>;
+  levels: Record<string, number>;
+  equipment: Record<string, number>;
+  primaryMuscles: Record<string, number>;
+  secondaryMuscles: Record<string, number>;
+};
+
 export type DatasetInspectionReport = {
   generatedAt: string;
   analysis: DatasetAnalysis;
-
-  unmapped: {
-    categories: Record<string, number>;
-    levels: Record<string, number>;
-    equipment: Record<string, number>;
-    primaryMuscles: Record<string, number>;
-    secondaryMuscles: Record<string, number>;
-  };
+  images: ExerciseImageInspectionResult;
+  unmapped: DatasetUnmappedValues;
 };

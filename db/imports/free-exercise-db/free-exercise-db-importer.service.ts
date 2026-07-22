@@ -7,6 +7,7 @@ import {
   Muscle,
 } from 'db/entities/workout';
 import { Repository } from 'typeorm';
+import { mapFreeExerciseDbImages } from './mappers/exercise-image.mapper';
 import { mapFreeExerciseDbExercise } from './mappers/exercise.mapper';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
 import {
@@ -14,6 +15,7 @@ import {
   FreeExerciseDbReferences,
 } from './types/free-exercise-db.types';
 import { ExerciseMetadataImportRecord } from './types/import-result.types';
+import { inspectExerciseImages } from './utils/inspect-images.util';
 import {
   analyzeFreeExerciseDbDataset,
   buildInspectionReport,
@@ -55,17 +57,35 @@ export class FreeExerciseDbImporterService {
   async run(options: FreeExerciseDbImportOptions = {}): Promise<void> {
     const { filePath, reportPath, dryRun = true } = options;
 
-    // Load and inspect the raw source dataset.
+    // Load the raw Free Exercise DB dataset.
     this.logger.log('Loading Free Exercise DB dataset');
 
     const sourceExercises = await loadFreeExerciseDbDataset(filePath);
+
+    // Analyze general dataset values and statistics.
     const analysis = analyzeFreeExerciseDbDataset(sourceExercises);
 
-    // Convert source records into the app's import format.
+    // Map source image paths and verify that the local files exist.
+    const imageRecords = sourceExercises.map((exercise) =>
+      mapFreeExerciseDbImages(exercise),
+    );
+
+    const imageInspection = await inspectExerciseImages(imageRecords);
+
+    this.logger.log(
+      `Inspected ${imageInspection.totalImages} image files for ${imageInspection.totalExercises} exercises`,
+    );
+
+    // Convert source records into the app's metadata import format.
     const mappedExercises = sourceExercises.map(mapFreeExerciseDbExercise);
 
-    // Build and save the dataset inspection report.
-    const report = buildInspectionReport(mappedExercises, analysis);
+    // Build and save the full dataset inspection report.
+    const report = buildInspectionReport(
+      mappedExercises,
+      analysis,
+      imageInspection,
+    );
+
     const savedReportPath = await writeImportReport(report, reportPath);
 
     this.logger.log(`Dataset inspection report written to: ${savedReportPath}`);
@@ -75,6 +95,13 @@ export class FreeExerciseDbImporterService {
 
     // Ensure all source values have supported app mappings.
     validateMappedValues(mappedExercises);
+
+    // Stop when one or more referenced source image files cannot be found.
+    if (imageInspection.missingFiles.length > 0) {
+      throw new Error(
+        `${imageInspection.missingFiles.length} source image files are missing.`,
+      );
+    }
 
     // Load the seeded database records needed by the importer.
     const references = await this.loadReferences();
@@ -92,7 +119,10 @@ export class FreeExerciseDbImporterService {
 
     this.logImportWarning();
 
-    // Insert or update exercises and rebuild their related links.
+    // Insert or update exercise metadata and rebuild related links.
+    //
+    // Image records are not persisted yet. This step only verifies that
+    // their source files exist and can be used by the future upload flow.
     const result = await this.persistenceService.persist({
       records: mappedExercises,
       references,
@@ -195,9 +225,11 @@ export class FreeExerciseDbImporterService {
     );
   }
 
-  // Tell the developer how to continue after a successful inspection.
+  // Tell where to review the completed inspection.
   private logInspectionSuccess(): void {
     this.logger.log('Inspection completed. No database rows were modified.');
+
+    this.logger.warn(`To run the real import, execute: ${IMPORT_COMMAND}`);
 
     this.logger.warn(
       [
@@ -205,8 +237,6 @@ export class FreeExerciseDbImporterService {
         'the source dataset and may overwrite local edits.',
       ].join(' '),
     );
-
-    this.logger.warn(`To run the real import, execute: ${IMPORT_COMMAND}`);
   }
 
   // Warn immediately before performing database writes.

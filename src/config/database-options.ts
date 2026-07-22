@@ -12,7 +12,7 @@ export function createDatabaseOptions(getEnv: EnvGetter): DataSourceOptions {
     ...getDBEnv(isProduction, getEnv),
     entities: AllEntities,
     synchronize: false,
-    logging: !isProduction,
+    logging: false,
     ssl: isProduction ? { rejectUnauthorized: false } : false,
   };
 }

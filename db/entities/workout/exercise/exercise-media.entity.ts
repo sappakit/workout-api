@@ -13,10 +13,10 @@ export class ExerciseMedia extends BaseEntity {
   url: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  public_id?: string;
+  public_id: string | null;
 
   @Column({ type: 'text', nullable: true })
-  source_path?: string;
+  source_path: string | null;
 
   @Column({ type: 'int', default: 0 })
   display_order: number;
@@ -35,5 +35,5 @@ export class ExerciseMedia extends BaseEntity {
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'source_id' })
-  source?: ExerciseSource;
+  source: ExerciseSource | null;
 }

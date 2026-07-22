@@ -8,6 +8,7 @@ import { FreeExerciseDbExercise } from '../types/free-exercise-db.types';
 import {
   DatasetAnalysis,
   DatasetInspectionReport,
+  ExerciseImageInspectionResult,
   ExerciseMetadataImportRecord,
 } from '../types/import-result.types';
 
@@ -63,10 +64,14 @@ export function analyzeFreeExerciseDbDataset(
 export function buildInspectionReport(
   exercises: ExerciseMetadataImportRecord[],
   analysis: DatasetAnalysis,
+  imageInspection: ExerciseImageInspectionResult,
 ): DatasetInspectionReport {
   return {
     generatedAt: new Date().toISOString(),
+
     analysis,
+
+    images: imageInspection,
 
     unmapped: {
       categories: countValues(
@@ -129,7 +134,7 @@ export async function writeImportReport(
   return resolvedPath;
 }
 
-// Count how many times each value appears and return alphabetically sorted keys.
+// Count how many times each value appears and sort the result by key.
 function countValues(values: string[]): Record<string, number> {
   const counts: Record<string, number> = {};
 
