@@ -1,6 +1,7 @@
 export const CLOUDINARY_FOLDERS = {
   PROFILE_IMAGES: 'workout-app/profile',
   EXERCISE_IMAGES: 'workout-app/exercise',
+  FREE_EXERCISE_DB_IMAGES: 'workout-app/exercise/free-exercise-db',
   WORKOUT_IMAGES: 'workout-app/workout',
 } as const;
 

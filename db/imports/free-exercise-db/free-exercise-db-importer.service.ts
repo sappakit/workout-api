@@ -9,6 +9,7 @@ import {
 import { Repository } from 'typeorm';
 import { mapFreeExerciseDbImages } from './mappers/exercise-image.mapper';
 import { mapFreeExerciseDbExercise } from './mappers/exercise.mapper';
+import { FreeExerciseDbImageUploadService } from './services/free-exercise-db-image-upload.service';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
 import {
   FreeExerciseDbImportOptions,
@@ -33,6 +34,7 @@ import {
 
 const FREE_EXERCISE_DB_SOURCE_KEY = 'free-exercise-db';
 const IMPORT_COMMAND = 'pnpm run import:exercises:run';
+const UPLOAD_IMAGES_FLAG = '--upload-images';
 
 @Injectable()
 export class FreeExerciseDbImporterService {
@@ -40,6 +42,7 @@ export class FreeExerciseDbImporterService {
 
   constructor(
     private readonly persistenceService: FreeExerciseDbPersistenceService,
+    private readonly imageUploadService: FreeExerciseDbImageUploadService,
 
     @InjectRepository(ExerciseCategory)
     private readonly exerciseCategoryRepo: Repository<ExerciseCategory>,
@@ -56,6 +59,8 @@ export class FreeExerciseDbImporterService {
 
   async run(options: FreeExerciseDbImportOptions = {}): Promise<void> {
     const { filePath, reportPath, dryRun = true } = options;
+
+    const shouldUploadImages = process.argv.includes(UPLOAD_IMAGES_FLAG);
 
     // Load the raw Free Exercise DB dataset.
     this.logger.log('Loading Free Exercise DB dataset');
@@ -99,8 +104,39 @@ export class FreeExerciseDbImporterService {
     // Stop when one or more referenced source image files cannot be found.
     if (imageInspection.missingFiles.length > 0) {
       throw new Error(
-        `${imageInspection.missingFiles.length} source image files are missing.`,
+        [
+          `${imageInspection.missingFiles.length} source image files are missing.`,
+          `Review the inspection report: ${savedReportPath}`,
+        ].join(' '),
       );
+    }
+
+    // Upload all validated images when explicitly requested.
+    //
+    // This step uploads images to Cloudinary only.
+    // It does not insert or update exercise_media rows yet.
+    if (shouldUploadImages) {
+      const uploadResult =
+        await this.imageUploadService.uploadAll(imageRecords);
+
+      this.logger.log(
+        `Uploaded ${uploadResult.uploadedImages.length}/${uploadResult.totalImages} exercise images`,
+      );
+
+      if (uploadResult.failedUploads.length > 0) {
+        throw new Error(
+          [
+            `${uploadResult.failedUploads.length} exercise image uploads failed.`,
+            'No exercise_media rows were modified.',
+          ].join(' '),
+        );
+      }
+
+      this.logger.log(
+        'Exercise image upload completed. No database rows were modified.',
+      );
+
+      return;
     }
 
     // Load the seeded database records needed by the importer.
@@ -121,8 +157,7 @@ export class FreeExerciseDbImporterService {
 
     // Insert or update exercise metadata and rebuild related links.
     //
-    // Image records are not persisted yet. This step only verifies that
-    // their source files exist and can be used by the future upload flow.
+    // Images are still handled separately through --upload-images.
     const result = await this.persistenceService.persist({
       records: mappedExercises,
       references,
@@ -166,7 +201,9 @@ export class FreeExerciseDbImporterService {
   // Load the source row used to identify Free Exercise DB exercises.
   private async loadExerciseSource(): Promise<ExerciseSource> {
     const source = await this.exerciseSourceRepo.findOne({
-      where: { key: FREE_EXERCISE_DB_SOURCE_KEY },
+      where: {
+        key: FREE_EXERCISE_DB_SOURCE_KEY,
+      },
     });
 
     if (!source) {
@@ -225,7 +262,7 @@ export class FreeExerciseDbImporterService {
     );
   }
 
-  // Tell where to review the completed inspection.
+  // Tell the developer how to continue after a successful inspection.
   private logInspectionSuccess(): void {
     this.logger.log('Inspection completed. No database rows were modified.');
 

@@ -7,9 +7,11 @@ import {
   ExerciseSource,
   Muscle,
 } from 'db/entities/workout';
+import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { importEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
+import { FreeExerciseDbImageUploadService } from './services/free-exercise-db-image-upload.service';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
 
 @Module({
@@ -25,7 +27,13 @@ import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-pe
       Muscle,
       ExerciseSource,
     ]),
+
+    CloudinaryModule,
   ],
-  providers: [FreeExerciseDbImporterService, FreeExerciseDbPersistenceService],
+  providers: [
+    FreeExerciseDbImporterService,
+    FreeExerciseDbPersistenceService,
+    FreeExerciseDbImageUploadService,
+  ],
 })
 export class FreeExerciseDbImporterModule {}

@@ -57,6 +57,28 @@ export type ExerciseImageInspectionResult = {
   missingFiles: MissingExerciseImageFile[];
 };
 
+export type UploadedExerciseImage = {
+  sourceExternalId: string;
+  sourcePath: string;
+  displayOrder: number;
+  isPrimary: boolean;
+  url: string;
+  publicId: string;
+};
+
+export type FailedExerciseImageUpload = {
+  sourceExternalId: string;
+  sourcePath: string;
+  displayOrder: number;
+  error: string;
+};
+
+export type ExerciseImageUploadResult = {
+  totalImages: number;
+  uploadedImages: UploadedExerciseImage[];
+  failedUploads: FailedExerciseImageUpload[];
+};
+
 // Analysis
 export type DatasetAnalysis = {
   totalExercises: number;

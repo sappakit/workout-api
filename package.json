@@ -44,6 +44,7 @@
     "dotenv": "^17.2.3",
     "ioredis": "^5.9.3",
     "joi": "18.0.1",
+    "p-limit": "^7.3.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",

@@ -1,6 +1,7 @@
 # TODO
 
 - check to know all the places to mention licensing
+- use p-limit for batch operation
 
 # Optional
 
