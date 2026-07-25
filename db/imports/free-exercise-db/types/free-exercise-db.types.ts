@@ -6,6 +6,15 @@ import {
 } from 'db/entities/workout';
 import { ExerciseMetadataImportRecord } from './import-result.types';
 
+export const FREE_EXERCISE_DB_IMPORT_TASKS = [
+  'inspect',
+  'metadata',
+  'images',
+] as const;
+
+export type FreeExerciseDbImportTask =
+  (typeof FREE_EXERCISE_DB_IMPORT_TASKS)[number];
+
 export type FreeExerciseDbExercise = {
   id: string;
   name: string;
@@ -26,7 +35,6 @@ export type FreeExerciseDbExercise = {
 export type FreeExerciseDbImportOptions = {
   filePath?: string;
   reportPath?: string;
-  dryRun?: boolean;
 };
 
 export type FreeExerciseDbReferences = {

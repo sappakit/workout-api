@@ -31,7 +31,7 @@ export function getSeedName(args: string[] = process.argv): SeedName {
   const seedArgs = args.slice(2).filter((arg) => arg !== '--');
   const seedName = seedArgs[0] ?? 'all';
 
-  if (!VALID_SEEDS.includes(seedName as SeedName)) {
+  if (!VALID_SEEDS.some((validSeed) => validSeed === seedName)) {
     throw new Error(
       `Invalid seed "${seedName}". Valid seeds: ${VALID_SEEDS.join(', ')}`,
     );

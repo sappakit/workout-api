@@ -6,21 +6,29 @@ import { stdin as input, stdout as output } from 'node:process';
 import { createInterface } from 'node:readline/promises';
 import { FreeExerciseDbImporterModule } from './free-exercise-db-importer.module';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
+import { FreeExerciseDbImportTask } from './types/free-exercise-db.types';
+import { getImportTask } from './utils/get-import-task.util';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('FreeExerciseDbImport');
+
   let app: INestApplicationContext | undefined;
 
   try {
     validateEnvironment();
 
-    const dryRun = !process.argv.includes('--import');
+    const task = getImportTask();
 
-    if (!dryRun) {
-      const confirmed = await confirmRealImport(logger);
+    logger.log(`Selected Free Exercise DB import task: ${task}`);
+
+    if (requiresConfirmation(task)) {
+      const confirmed = await confirmImport(task, logger);
 
       if (!confirmed) {
-        logger.warn('Import cancelled. No database rows were modified.');
+        logger.warn(
+          'Import cancelled. No database rows or Cloudinary assets were modified.',
+        );
+
         return;
       }
     }
@@ -34,13 +42,9 @@ async function bootstrap(): Promise<void> {
 
     const importer = app.get(FreeExerciseDbImporterService);
 
-    await importer.run({ dryRun });
+    await importer.run(task);
 
-    logger.log(
-      dryRun
-        ? 'Free Exercise DB inspection completed successfully.'
-        : 'Free Exercise DB import completed successfully.',
-    );
+    logger.log(getSuccessMessage(task));
   } catch (error: unknown) {
     logger.error(
       'Free Exercise DB import failed',
@@ -66,24 +70,63 @@ function validateEnvironment(): void {
   }
 }
 
-async function confirmRealImport(logger: Logger): Promise<boolean> {
-  logger.warn(
-    [
-      'This operation will update existing Free Exercise DB exercises',
-      'to match the source dataset and may overwrite local edits.',
-    ].join(' '),
-  );
+function requiresConfirmation(task: FreeExerciseDbImportTask): boolean {
+  return task === 'metadata' || task === 'images';
+}
 
-  const readline = createInterface({ input, output });
+async function confirmImport(
+  task: FreeExerciseDbImportTask,
+  logger: Logger,
+): Promise<boolean> {
+  logger.warn(getConfirmationWarning(task));
+
+  const readline = createInterface({
+    input,
+    output,
+  });
 
   try {
+    const confirmationText = 'IMPORT';
+
     const answer = await readline.question(
-      'Type "IMPORT" to confirm and continue: ',
+      `Type "${confirmationText}" to confirm and continue: `,
     );
 
-    return answer.trim() === 'IMPORT';
+    return answer.trim() === confirmationText;
   } finally {
     readline.close();
+  }
+}
+
+function getConfirmationWarning(task: FreeExerciseDbImportTask): string {
+  switch (task) {
+    case 'metadata':
+      return [
+        'This operation will upsert Free Exercise DB exercise metadata',
+        'Existing imported values may be overwritten.',
+      ].join(' ');
+
+    case 'images':
+      return [
+        'This operation will upload Free Exercise DB images to Cloudinary',
+        'Existing imported media values may be overwritten.',
+      ].join(' ');
+
+    case 'inspect':
+      return 'Inspection does not modify the database or Cloudinary.';
+  }
+}
+
+function getSuccessMessage(task: FreeExerciseDbImportTask): string {
+  switch (task) {
+    case 'inspect':
+      return 'Free Exercise DB inspection completed successfully.';
+
+    case 'metadata':
+      return 'Free Exercise DB metadata import completed successfully.';
+
+    case 'images':
+      return 'Free Exercise DB image import completed successfully.';
   }
 }
 

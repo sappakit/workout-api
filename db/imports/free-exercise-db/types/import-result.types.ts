@@ -79,7 +79,7 @@ export type ExerciseImageUploadResult = {
   failedUploads: FailedExerciseImageUpload[];
 };
 
-// Analysis
+// Analysis report
 export type DatasetAnalysis = {
   totalExercises: number;
   duplicateIds: string[];
@@ -110,4 +110,13 @@ export type DatasetInspectionReport = {
   analysis: DatasetAnalysis;
   images: ExerciseImageInspectionResult;
   unmapped: DatasetUnmappedValues;
+};
+
+// Error report
+export type ExerciseImageUploadErrorReport = {
+  generatedAt: string;
+  totalImages: number;
+  successfulUploads: number;
+  failedUploads: number;
+  errors: ExerciseImageUploadResult['failedUploads'];
 };

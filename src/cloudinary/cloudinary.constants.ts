@@ -10,30 +10,21 @@ export type CLOUDINARY_FOLDERS =
 
 export const CLOUDINARY_TRANSFORMATIONS = {
   PROFILE_IMAGE: {
-    width: 600,
-    height: 600,
-    crop: 'fill',
-    gravity: 'face',
-    quality: 'auto',
-    fetch_format: 'auto',
+    width: 1600,
+    height: 1600,
+    crop: 'limit',
   },
 
   EXERCISE_IMAGE: {
-    width: 1200,
-    height: 800,
-    crop: 'fill',
-    gravity: 'auto',
-    quality: 'auto',
-    fetch_format: 'auto',
+    width: 2000,
+    height: 2000,
+    crop: 'limit',
   },
 
   WORKOUT_IMAGE: {
-    width: 1200,
-    height: 800,
-    crop: 'fill',
-    gravity: 'auto',
-    quality: 'auto',
-    fetch_format: 'auto',
+    width: 2000,
+    height: 2000,
+    crop: 'limit',
   },
 } as const;
 

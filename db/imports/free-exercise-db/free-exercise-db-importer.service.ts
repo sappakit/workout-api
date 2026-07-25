@@ -1,166 +1,95 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Equipment,
-  ExerciseCategory,
-  ExerciseSource,
-  Muscle,
-} from 'db/entities/workout';
-import { Repository } from 'typeorm';
-import { mapFreeExerciseDbImages } from './mappers/exercise-image.mapper';
-import { mapFreeExerciseDbExercise } from './mappers/exercise.mapper';
+import { ExerciseSource } from 'db/entities/workout';
 import { FreeExerciseDbImageUploadService } from './services/free-exercise-db-image-upload.service';
+import { FreeExerciseDbMediaPersistenceService } from './services/free-exercise-db-media-persistence.service';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
+import { FreeExerciseDbPreparationService } from './services/free-exercise-db-preparation.service';
 import {
   FreeExerciseDbImportOptions,
-  FreeExerciseDbReferences,
+  FreeExerciseDbImportTask,
 } from './types/free-exercise-db.types';
-import { ExerciseMetadataImportRecord } from './types/import-result.types';
-import { inspectExerciseImages } from './utils/inspect-images.util';
-import {
-  analyzeFreeExerciseDbDataset,
-  buildInspectionReport,
-  writeImportReport,
-} from './utils/inspection-report.util';
-import { loadFreeExerciseDbDataset } from './utils/load-dataset.util';
-import {
-  getRequiredCategoryCodes,
-  getRequiredEquipmentCodes,
-  getRequiredMuscleCodes,
-  validateMappedValues,
-  validateNoDuplicateSourceIds,
-  validateRequiredCodesExist,
-} from './utils/validate-import.util';
-
-const FREE_EXERCISE_DB_SOURCE_KEY = 'free-exercise-db';
-const IMPORT_COMMAND = 'pnpm run import:exercises:run';
-const UPLOAD_IMAGES_FLAG = '--upload-images';
+import { ExerciseImageImportRecord } from './types/import-result.types';
+import { writeImageUploadErrorReport } from './utils/reports/upload-error-report.util';
 
 @Injectable()
 export class FreeExerciseDbImporterService {
   private readonly logger = new Logger(FreeExerciseDbImporterService.name);
 
   constructor(
+    private readonly preparationService: FreeExerciseDbPreparationService,
     private readonly persistenceService: FreeExerciseDbPersistenceService,
     private readonly imageUploadService: FreeExerciseDbImageUploadService,
-
-    @InjectRepository(ExerciseCategory)
-    private readonly exerciseCategoryRepo: Repository<ExerciseCategory>,
-
-    @InjectRepository(Equipment)
-    private readonly equipmentRepo: Repository<Equipment>,
-
-    @InjectRepository(Muscle)
-    private readonly muscleRepo: Repository<Muscle>,
-
-    @InjectRepository(ExerciseSource)
-    private readonly exerciseSourceRepo: Repository<ExerciseSource>,
+    private readonly mediaPersistenceService: FreeExerciseDbMediaPersistenceService,
   ) {}
 
-  async run(options: FreeExerciseDbImportOptions = {}): Promise<void> {
-    const { filePath, reportPath, dryRun = true } = options;
+  // Run the selected inspection, metadata, or image import task.
+  async run(
+    task: FreeExerciseDbImportTask,
+    options: FreeExerciseDbImportOptions = {},
+  ): Promise<void> {
+    this.logger.log(`Running Free Exercise DB task: ${task}`);
 
-    const shouldUploadImages = process.argv.includes(UPLOAD_IMAGES_FLAG);
+    switch (task) {
+      case 'inspect':
+        await this.inspect(options);
+        return;
 
-    // Load the raw Free Exercise DB dataset.
-    this.logger.log('Loading Free Exercise DB dataset');
+      case 'metadata':
+        await this.importMetadata(options);
+        return;
 
-    const sourceExercises = await loadFreeExerciseDbDataset(filePath);
+      case 'images':
+        await this.importImages(options);
+        return;
 
-    // Analyze general dataset values and statistics.
-    const analysis = analyzeFreeExerciseDbDataset(sourceExercises);
+      default:
+        throw new Error(
+          `Unsupported Free Exercise DB import task: ${String(task)}`,
+        );
+    }
+  }
 
-    // Map source image paths and verify that the local files exist.
-    const imageRecords = sourceExercises.map((exercise) =>
-      mapFreeExerciseDbImages(exercise),
-    );
-
-    const imageInspection = await inspectExerciseImages(imageRecords);
+  // Inspect and validate the dataset without modifying external data.
+  private async inspect(options: FreeExerciseDbImportOptions): Promise<void> {
+    const result = await this.preparationService.prepareInspection(options);
 
     this.logger.log(
-      `Inspected ${imageInspection.totalImages} image files for ${imageInspection.totalExercises} exercises`,
+      [
+        'Inspection completed successfully.',
+        `Validated ${result.exerciseCount} exercises.`,
+        `Validated ${result.imageCount} image files.`,
+        'No database rows or Cloudinary assets were modified.',
+      ].join(' '),
     );
 
-    // Convert source records into the app's metadata import format.
-    const mappedExercises = sourceExercises.map(mapFreeExerciseDbExercise);
-
-    // Build and save the full dataset inspection report.
-    const report = buildInspectionReport(
-      mappedExercises,
-      analysis,
-      imageInspection,
+    this.logger.warn(
+      'Next step — import metadata: pnpm run import:exercises -- metadata',
     );
 
-    const savedReportPath = await writeImportReport(report, reportPath);
+    this.logger.warn(
+      [
+        'After metadata is imported — import images:',
+        'pnpm run import:exercises -- images',
+      ].join(' '),
+    );
+  }
 
-    this.logger.log(`Dataset inspection report written to: ${savedReportPath}`);
+  // Validate and persist exercise metadata and relationships.
+  private async importMetadata(
+    options: FreeExerciseDbImportOptions,
+  ): Promise<void> {
+    this.logger.warn(
+      [
+        'Starting the Free Exercise DB metadata import.',
+        'Existing imported exercise values may be overwritten.',
+      ].join(' '),
+    );
 
-    // Ensure source IDs can safely identify imported exercises.
-    validateNoDuplicateSourceIds(analysis.duplicateIds);
+    const prepared = await this.preparationService.prepareMetadata(options);
 
-    // Ensure all source values have supported app mappings.
-    validateMappedValues(mappedExercises);
-
-    // Stop when one or more referenced source image files cannot be found.
-    if (imageInspection.missingFiles.length > 0) {
-      throw new Error(
-        [
-          `${imageInspection.missingFiles.length} source image files are missing.`,
-          `Review the inspection report: ${savedReportPath}`,
-        ].join(' '),
-      );
-    }
-
-    // Upload all validated images when explicitly requested.
-    //
-    // This step uploads images to Cloudinary only.
-    // It does not insert or update exercise_media rows yet.
-    if (shouldUploadImages) {
-      const uploadResult =
-        await this.imageUploadService.uploadAll(imageRecords);
-
-      this.logger.log(
-        `Uploaded ${uploadResult.uploadedImages.length}/${uploadResult.totalImages} exercise images`,
-      );
-
-      if (uploadResult.failedUploads.length > 0) {
-        throw new Error(
-          [
-            `${uploadResult.failedUploads.length} exercise image uploads failed.`,
-            'No exercise_media rows were modified.',
-          ].join(' '),
-        );
-      }
-
-      this.logger.log(
-        'Exercise image upload completed. No database rows were modified.',
-      );
-
-      return;
-    }
-
-    // Load the seeded database records needed by the importer.
-    const references = await this.loadReferences();
-
-    // Ensure every mapped reference code exists in the database.
-    this.validateDatabaseReferences(mappedExercises, references);
-
-    this.logDatabaseValidationResults(references);
-
-    // Stop after inspection and validation during a dry run.
-    if (dryRun) {
-      this.logInspectionSuccess();
-      return;
-    }
-
-    this.logImportWarning();
-
-    // Insert or update exercise metadata and rebuild related links.
-    //
-    // Images are still handled separately through --upload-images.
     const result = await this.persistenceService.persist({
-      records: mappedExercises,
-      references,
+      records: prepared.records,
+      references: prepared.references,
     });
 
     this.logger.log(
@@ -172,117 +101,65 @@ export class FreeExerciseDbImporterService {
     );
 
     this.logger.log(`Inserted ${result.muscleLinkCount} exercise-muscle links`);
+
+    this.logger.log('Free Exercise DB metadata import completed.');
   }
 
-  // Load all seeded reference records required by the importer.
-  private async loadReferences(): Promise<FreeExerciseDbReferences> {
-    const [source, categories, equipmentItems, muscles] = await Promise.all([
-      this.loadExerciseSource(),
-      this.exerciseCategoryRepo.find(),
-      this.equipmentRepo.find(),
-      this.muscleRepo.find(),
-    ]);
+  // Validate, upload, and persist exercise image records.
+  private async importImages(
+    options: FreeExerciseDbImportOptions,
+  ): Promise<void> {
+    this.logger.warn(
+      [
+        'Starting the Free Exercise DB image import.',
+        'Images will be uploaded to Cloudinary and upserted into exercise_media.',
+      ].join(' '),
+    );
 
-    return {
-      source,
+    const prepared = await this.preparationService.prepareImages(options);
 
-      categoriesByCode: new Map(
-        categories.map((category) => [category.code, category]),
-      ),
-
-      equipmentByCode: new Map(
-        equipmentItems.map((equipment) => [equipment.code, equipment]),
-      ),
-
-      musclesByCode: new Map(muscles.map((muscle) => [muscle.code, muscle])),
-    };
+    await this.uploadAndPersistImages(prepared.imageRecords, prepared.source);
   }
 
-  // Load the source row used to identify Free Exercise DB exercises.
-  private async loadExerciseSource(): Promise<ExerciseSource> {
-    const source = await this.exerciseSourceRepo.findOne({
-      where: {
-        key: FREE_EXERCISE_DB_SOURCE_KEY,
-      },
-    });
+  // Upload local images and upsert their exercise_media rows.
+  private async uploadAndPersistImages(
+    imageRecords: ExerciseImageImportRecord[],
+    source: ExerciseSource,
+  ): Promise<void> {
+    const uploadResult = await this.imageUploadService.uploadAll(imageRecords);
 
-    if (!source) {
+    this.logger.log(
+      `Uploaded ${uploadResult.uploadedImages.length}/${uploadResult.totalImages} exercise images`,
+    );
+
+    if (uploadResult.failedUploads.length > 0) {
+      const errorReportPath = await writeImageUploadErrorReport(uploadResult);
+
+      this.logger.error(
+        [
+          `${uploadResult.failedUploads.length} exercise image uploads failed.`,
+          `Full error report written to: ${errorReportPath}`,
+        ].join(' '),
+      );
+
       throw new Error(
         [
-          `Exercise source "${FREE_EXERCISE_DB_SOURCE_KEY}" is missing.`,
-          'Run the exercise-source seed before running the importer.',
+          `${uploadResult.failedUploads.length} exercise image uploads failed.`,
+          'No exercise_media rows were modified.',
+          `Review the error report: ${errorReportPath}`,
         ].join(' '),
       );
     }
 
-    return source;
-  }
+    const mediaResult = await this.mediaPersistenceService.persist({
+      source,
+      uploadedImages: uploadResult.uploadedImages,
+    });
 
-  // Ensure every mapped category, equipment, and muscle exists in the database.
-  private validateDatabaseReferences(
-    mappedExercises: ExerciseMetadataImportRecord[],
-    references: FreeExerciseDbReferences,
-  ): void {
-    validateRequiredCodesExist(
-      'exercise categories',
-      getRequiredCategoryCodes(mappedExercises),
-      references.categoriesByCode,
-      'exercise-category',
-    );
-
-    validateRequiredCodesExist(
-      'equipment records',
-      getRequiredEquipmentCodes(mappedExercises),
-      references.equipmentByCode,
-      'equipment',
-    );
-
-    validateRequiredCodesExist(
-      'muscles',
-      getRequiredMuscleCodes(mappedExercises),
-      references.musclesByCode,
-      'muscle',
-    );
-  }
-
-  // Log how many database reference records were validated.
-  private logDatabaseValidationResults(
-    references: FreeExerciseDbReferences,
-  ): void {
-    this.logger.log(
-      `Validated ${references.categoriesByCode.size} exercise categories against the database`,
-    );
+    this.logger.log(`Upserted ${mediaResult.mediaCount} exercise_media rows`);
 
     this.logger.log(
-      `Validated ${references.equipmentByCode.size} equipment records against the database`,
-    );
-
-    this.logger.log(
-      `Validated ${references.musclesByCode.size} muscles against the database`,
-    );
-  }
-
-  // Tell the developer how to continue after a successful inspection.
-  private logInspectionSuccess(): void {
-    this.logger.log('Inspection completed. No database rows were modified.');
-
-    this.logger.warn(`To run the real import, execute: ${IMPORT_COMMAND}`);
-
-    this.logger.warn(
-      [
-        'The real import updates existing Free Exercise DB exercises to match',
-        'the source dataset and may overwrite local edits.',
-      ].join(' '),
-    );
-  }
-
-  // Warn immediately before performing database writes.
-  private logImportWarning(): void {
-    this.logger.warn(
-      [
-        'Starting the real Free Exercise DB import.',
-        'Existing imported exercise data may be overwritten by source values.',
-      ].join(' '),
+      'Free Exercise DB image upload and database persistence completed.',
     );
   }
 }

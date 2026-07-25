@@ -1,16 +1,18 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
 import {
   isSupportedEquipmentValue,
   mapMuscleCode,
-} from '../mappers/exercise.mapper';
-import { FreeExerciseDbExercise } from '../types/free-exercise-db.types';
+} from '../../mappers/exercise.mapper';
+import { FreeExerciseDbExercise } from '../../types/free-exercise-db.types';
 import {
   DatasetAnalysis,
   DatasetInspectionReport,
   ExerciseImageInspectionResult,
   ExerciseMetadataImportRecord,
-} from '../types/import-result.types';
+} from '../../types/import-result.types';
+import { writeJsonReport } from './write-json-report.util';
+
+const DEFAULT_INSPECTION_REPORT_PATH =
+  'db/imports/free-exercise-db/reports/dataset-analysis.json';
 
 // Analyze the raw Free Exercise DB dataset.
 export function analyzeFreeExerciseDbDataset(
@@ -67,7 +69,7 @@ export function buildInspectionReport(
   imageInspection: ExerciseImageInspectionResult,
 ): DatasetInspectionReport {
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: new Date().toLocaleString(),
 
     analysis,
 
@@ -113,25 +115,12 @@ export function buildInspectionReport(
   };
 }
 
-// Write the inspection report to disk and return the resolved file path.
+// Write the dataset inspection report to disk.
 export async function writeImportReport(
   report: DatasetInspectionReport,
   filePath?: string,
 ): Promise<string> {
-  const resolvedPath = filePath
-    ? resolve(filePath)
-    : resolve(
-        process.cwd(),
-        'db/imports/free-exercise-db/reports/dataset-analysis.json',
-      );
-
-  await mkdir(dirname(resolvedPath), {
-    recursive: true,
-  });
-
-  await writeFile(resolvedPath, JSON.stringify(report, null, 2), 'utf8');
-
-  return resolvedPath;
+  return writeJsonReport(report, DEFAULT_INSPECTION_REPORT_PATH, filePath);
 }
 
 // Count how many times each value appears and sort the result by key.
