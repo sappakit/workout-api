@@ -1,4 +1,4 @@
-import { ExerciseCategory } from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { SEED_ACTOR } from '../types/seed.types';
 
 type ExerciseCategorySeedData = Pick<

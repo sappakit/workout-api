@@ -8,14 +8,14 @@ export abstract class WorkoutSetBase {
   set_number: number;
 
   @Column({ type: 'int', nullable: true })
-  reps?: number | null;
+  reps: number | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  weight?: number | null;
+  weight: number | null;
 
   @Column({ type: 'numeric', precision: 6, scale: 2, nullable: true })
-  distance?: number | null;
+  distance: number | null;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  duration?: number | null;
+  duration: number | null;
 }

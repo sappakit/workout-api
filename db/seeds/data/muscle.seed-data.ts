@@ -1,4 +1,4 @@
-import { Muscle } from 'db/entities/workout';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { SEED_ACTOR } from '../types/seed.types';
 
 type MuscleSeedData = Pick<

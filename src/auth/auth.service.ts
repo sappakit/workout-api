@@ -7,7 +7,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Role, User, UserProfile } from 'db/entities/auth';
+import { Role } from 'db/entities/auth/role.entity';
+import { UserProfile } from 'db/entities/auth/user-profile.entity';
+import { User } from 'db/entities/auth/user.entity';
 import { generateSecureToken, hashToken } from 'src/common/utils/security.util';
 import { EmailService } from 'src/email/email.service';
 import { HashingService } from 'src/hashing/services/hashing.service';
@@ -44,10 +46,6 @@ export class AuthService {
     // Repository
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(UserProfile)
-    private readonly profileRepo: Repository<UserProfile>,
-    @InjectRepository(Role)
-    private readonly roleRepo: Repository<Role>,
   ) {
     this.resetPasswordUrl = this.configService.getOrThrow<string>(
       'APP_RESET_PASSWORD_URL',

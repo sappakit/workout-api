@@ -1,4 +1,6 @@
-import { Role, User, UserProfile } from 'db/entities/auth';
+import { Role } from 'db/entities/auth/role.entity';
+import { UserProfile } from 'db/entities/auth/user-profile.entity';
+import { User } from 'db/entities/auth/user.entity';
 
 type RoleSeedData = Pick<Role, 'code' | 'name' | 'description'>;
 

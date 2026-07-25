@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ExerciseSource } from 'db/entities/workout';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { FreeExerciseDbImageUploadService } from './services/free-exercise-db-image-upload.service';
 import { FreeExerciseDbMediaPersistenceService } from './services/free-exercise-db-media-persistence.service';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';

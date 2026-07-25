@@ -1,9 +1,9 @@
 import {
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 export abstract class BaseEntity {
@@ -23,8 +23,8 @@ export abstract class BaseEntity {
   updated_by: string;
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
-  deleted_at?: Date;
+  deleted_at: Date | null;
 
   @Column({ type: 'varchar', nullable: true })
-  deleted_by: string;
+  deleted_by: string | null;
 }

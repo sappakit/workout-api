@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Equipment,
-  Exercise,
-  ExerciseEquipment,
-  ExerciseMuscle,
-  Muscle,
-} from 'db/entities/workout';
+import { ExerciseEquipment } from 'db/entities/workout/exercise/exercise-equipment.entity';
+import { ExerciseMuscle } from 'db/entities/workout/exercise/exercise-muscles.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { ExerciseMuscleRole } from 'src/workout/enums/workout.enum';
 import {
   DataSource,

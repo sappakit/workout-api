@@ -6,9 +6,9 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsDateString,
+  IsDefined,
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -21,32 +21,45 @@ import {
 import { WorkoutWeeklyPlanDayType } from '../enums/workout.enum';
 
 class WorkoutSetValueDto {
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   reps: number | null;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   weight: number | null;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   distance: number | null;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Set duration in seconds.',
+  })
   duration: number | null;
 }
 
@@ -54,10 +67,13 @@ class SaveWorkoutExerciseSetDto extends WorkoutSetValueDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  id?: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -69,26 +85,33 @@ export class SaveWorkoutExerciseDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  id?: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @ApiProperty()
   orderIndex: number;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Rest time in seconds.',
+  })
   restTime: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
+  @Min(1)
   @ApiProperty()
   exerciseId: number;
 
@@ -102,28 +125,33 @@ export class SaveWorkoutExerciseDto {
 
 export class SaveWorkoutDto {
   @IsString()
-  @IsNotEmpty()
   @MaxLength(100)
   @ApiProperty()
   name: string;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
+  @Min(1)
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   workoutFocusTypeId: number | null;
 
   @IsArray()
   @Type(() => Number)
   @IsInt({ each: true })
+  @Min(1, { each: true })
   @ApiProperty({ type: [Number] })
   targetMuscles: number[];
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Estimated workout duration in seconds.',
+  })
   duration: number;
 
   @IsArray()
@@ -138,30 +166,45 @@ export class FinishWorkoutSessionSetDto extends WorkoutSetValueDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  id?: number | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  workoutExerciseSetId: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  workoutExerciseSetId?: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @ApiProperty()
   setNumber: number;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @IsDateString()
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
   performedAt: string | null;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @IsDateString()
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
   completedAt: string | null;
 }
 
@@ -169,38 +212,53 @@ export class FinishWorkoutSessionExerciseDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  id: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  id?: number | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @ApiPropertyOptional()
-  workoutExerciseId: number | null;
+  @Min(1)
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+  })
+  workoutExerciseId?: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
+  @Min(1)
   @ApiProperty()
   exerciseId: number;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   @ApiProperty()
   orderIndex: number;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Rest time in seconds.',
+  })
   restTime: number | null;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @IsDateString()
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
   completedAt: string | null;
 
   @IsArray()
@@ -212,30 +270,40 @@ export class FinishWorkoutSessionExerciseDto {
 }
 
 export class FinishWorkoutSessionDto {
-  @IsNotEmpty()
   @IsDateString()
-  @ApiProperty()
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+  })
   endedAt: string;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Total workout duration in seconds.',
+  })
   totalDuration: number | null;
 
-  @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Total paused duration in seconds.',
+  })
   totalPausedDuration: number;
 
-  @IsOptional()
+  @ValidateIf((_dto, value) => value !== null)
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @ApiPropertyOptional()
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   caloriesBurned: number | null;
 
   @IsArray()
@@ -247,19 +315,21 @@ export class FinishWorkoutSessionDto {
 }
 
 export class UpdateWorkoutScheduleWorkoutDto {
-  @IsNotEmpty()
+  @Type(() => Number)
   @IsInt()
+  @Min(1)
   @ApiProperty({ example: 1 })
   workoutId: number;
 }
 
 export class UpdateWorkoutWeeklyPlanDayDto {
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(7)
   @ApiProperty({
     example: 1,
-    description: '1 = Monday, 7 = Sunday',
+    description: 'ISO weekday: 1 = Monday, 7 = Sunday.',
   })
   dayOfWeek: number;
 
@@ -271,13 +341,16 @@ export class UpdateWorkoutWeeklyPlanDayDto {
   dayType: WorkoutWeeklyPlanDayType;
 
   @ValidateIf((dto) => dto.dayType === WorkoutWeeklyPlanDayType.WORKOUT)
-  @IsNotEmpty()
+  @IsDefined()
+  @Type(() => Number)
   @IsInt()
+  @Min(1)
   @ApiPropertyOptional({
-    example: 1,
+    type: Number,
     nullable: true,
+    example: 1,
     description:
-      'Required when dayType is WORKOUT. Ignored for REST/UNASSIGNED.',
+      'Required when dayType is WORKOUT. Omitted or ignored for REST and UNASSIGNED.',
   })
   workoutId?: number | null;
 }

@@ -4,19 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Exercise,
-  Workout,
-  WorkoutExercise,
-  WorkoutExerciseSet,
-  WorkoutFocusType,
-  WorkoutMuscle,
-  WorkoutSchedule,
-  WorkoutSession,
-  WorkoutSessionExercise,
-  WorkoutSessionExerciseSet,
-  WorkoutWeeklyPlan,
-} from 'db/entities/workout';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
+import { WorkoutExerciseSet } from 'db/entities/workout/workout/workout-exercise-sets.entity';
+import { WorkoutExercise } from 'db/entities/workout/workout/workout-exercises.entity';
+import { WorkoutFocusType } from 'db/entities/workout/workout/workout-focus-types.entity';
+import { WorkoutMuscle } from 'db/entities/workout/workout/workout-muscles.entity';
+import { WorkoutSchedule } from 'db/entities/workout/workout/workout-schedule.entity';
+import { WorkoutSessionExerciseSet } from 'db/entities/workout/workout/workout-session-exercise-sets.entity';
+import { WorkoutSessionExercise } from 'db/entities/workout/workout/workout-session-exercises.entity';
+import { WorkoutSession } from 'db/entities/workout/workout/workout-sessions.entity';
+import { WorkoutWeeklyPlan } from 'db/entities/workout/workout/workout-weekly-plan.entity';
+import { Workout } from 'db/entities/workout/workout/workouts.entity';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';

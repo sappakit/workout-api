@@ -3,20 +3,36 @@ import { Expose, Type } from 'class-transformer';
 
 class UserProfileDto {
   @Expose({ name: 'first_name' })
-  @ApiProperty({ example: 'Joe' })
-  firstName: string;
+  @ApiProperty({
+    example: 'Joe',
+    nullable: true,
+    type: String,
+  })
+  firstName: string | null;
 
   @Expose({ name: 'last_name' })
-  @ApiProperty({ example: 'Doe' })
-  lastName: string;
+  @ApiProperty({
+    example: 'Doe',
+    nullable: true,
+    type: String,
+  })
+  lastName: string | null;
 
   @Expose({ name: 'phone_number' })
-  @ApiProperty()
-  phoneNumber: string;
+  @ApiProperty({
+    example: '0812345678',
+    nullable: true,
+    type: String,
+  })
+  phoneNumber: string | null;
 
   @Expose({ name: 'image_url' })
-  @ApiProperty()
-  imageUrl: string;
+  @ApiProperty({
+    example: 'https://example.com/profile.jpg',
+    nullable: true,
+    type: String,
+  })
+  imageUrl: string | null;
 }
 
 export class UserDto {
@@ -34,6 +50,9 @@ export class UserDto {
 
   @Expose()
   @Type(() => UserProfileDto)
-  @ApiProperty({ type: UserProfileDto })
-  profile: UserProfileDto;
+  @ApiProperty({
+    type: UserProfileDto,
+    nullable: true,
+  })
+  profile: UserProfileDto | null;
 }

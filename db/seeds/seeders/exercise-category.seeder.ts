@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ExerciseCategory } from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { Repository } from 'typeorm';
 import { EXERCISE_CATEGORY_SEED_DATA } from '../data/exercise-category.seed-data';
 import { runUpsertSeed } from '../utils/seed.util';

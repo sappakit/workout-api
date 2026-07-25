@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Muscle } from 'db/entities/workout';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { Repository } from 'typeorm';
 import { MUSCLE_SEED_DATA } from '../data/muscle.seed-data';
 import { runUpsertSeed } from '../utils/seed.util';

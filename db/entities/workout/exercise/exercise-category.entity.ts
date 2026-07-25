@@ -1,4 +1,4 @@
-import { BaseEntity } from 'db/entities/shared';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { Exercise } from './exercises.entity';
 
@@ -11,7 +11,7 @@ export class ExerciseCategory extends BaseEntity {
   name: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
   @Column({ type: 'int', default: 0 })
   display_order: number;

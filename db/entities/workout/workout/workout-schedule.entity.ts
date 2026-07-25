@@ -1,8 +1,8 @@
-import { User } from 'db/entities/auth';
+import { User } from 'db/entities/auth/user.entity';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { WorkoutScheduleStatus } from 'src/workout/enums/workout.enum';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import { Workout } from '.';
-import { BaseEntity } from 'db/entities/shared';
+import { Workout } from './workouts.entity';
 
 @Index(['user', 'status'])
 @Index(['user', 'scheduled_date'], { unique: true })

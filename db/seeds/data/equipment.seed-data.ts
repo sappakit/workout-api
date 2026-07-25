@@ -1,4 +1,4 @@
-import { Equipment } from 'db/entities/workout';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { EquipmentCategory } from 'src/workout/enums/workout.enum';
 import { SEED_ACTOR } from '../types/seed.types';
 

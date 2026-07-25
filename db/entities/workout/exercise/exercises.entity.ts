@@ -1,5 +1,5 @@
-import { User } from 'db/entities/auth';
-import { BaseEntity } from 'db/entities/shared';
+import { User } from 'db/entities/auth/user.entity';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import {
   DifficultyLevel,
   ExerciseOrigin,
@@ -14,15 +14,14 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import {
-  ExerciseCategory,
-  ExerciseEquipment,
-  ExerciseMedia,
-  ExerciseMuscle,
-  ExerciseSource,
-  ExerciseUserStat,
-} from '.';
-import { WorkoutExercise, WorkoutSessionExercise } from '../workout';
+import { WorkoutExercise } from '../workout/workout-exercises.entity';
+import { WorkoutSessionExercise } from '../workout/workout-session-exercises.entity';
+import { ExerciseCategory } from './exercise-category.entity';
+import { ExerciseEquipment } from './exercise-equipment.entity';
+import { ExerciseMedia } from './exercise-media.entity';
+import { ExerciseMuscle } from './exercise-muscles.entity';
+import { ExerciseSource } from './exercise-source.entity';
+import { ExerciseUserStat } from './exercise-user-stats.entity';
 
 // Ensures system exercises have no owner, while user exercises must have one.
 const EXERCISE_ORIGIN_OWNER_CHECK = `

@@ -1,7 +1,7 @@
-import { BaseEntity } from 'db/entities/shared';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { ExerciseMuscle } from '../exercise';
-import { WorkoutMuscle } from '../workout';
+import { ExerciseMuscle } from '../exercise/exercise-muscles.entity';
+import { WorkoutMuscle } from '../workout/workout-muscles.entity';
 
 @Entity({ schema: 'workout', name: 'muscles' })
 export class Muscle extends BaseEntity {

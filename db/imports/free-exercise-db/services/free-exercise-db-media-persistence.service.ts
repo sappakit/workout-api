@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { Exercise, ExerciseMedia, ExerciseSource } from 'db/entities/workout';
+import { ExerciseMedia } from 'db/entities/workout/exercise/exercise-media.entity';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { ExerciseMediaType } from 'src/workout/enums/workout.enum';
 import { DataSource, DeepPartial, EntityManager, In } from 'typeorm';
 import { UploadedExerciseImage } from '../types/import-result.types';

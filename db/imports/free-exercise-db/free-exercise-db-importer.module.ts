@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import {
-  Equipment,
-  ExerciseCategory,
-  ExerciseSource,
-  Muscle,
-} from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { importEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';

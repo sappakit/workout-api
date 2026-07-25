@@ -1,12 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Equipment,
-  Exercise,
-  Muscle,
-  WorkoutSessionExercise,
-  WorkoutSessionExerciseSet,
-} from 'db/entities/workout';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
+import { WorkoutSessionExerciseSet } from 'db/entities/workout/workout/workout-session-exercise-sets.entity';
+import { WorkoutSessionExercise } from 'db/entities/workout/workout/workout-session-exercises.entity';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';

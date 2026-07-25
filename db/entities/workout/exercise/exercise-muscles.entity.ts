@@ -7,8 +7,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Exercise } from '.';
-import { Muscle } from '../shared';
+import { Muscle } from '../shared/muscles.entity';
+import { Exercise } from './exercises.entity';
 
 @Index(['muscle'])
 @Index(['exercise', 'role'])

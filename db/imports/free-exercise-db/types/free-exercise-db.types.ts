@@ -1,9 +1,7 @@
-import {
-  Equipment,
-  ExerciseCategory,
-  ExerciseSource,
-  Muscle,
-} from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { ExerciseMetadataImportRecord } from './import-result.types';
 
 export const FREE_EXERCISE_DB_IMPORT_TASKS = [

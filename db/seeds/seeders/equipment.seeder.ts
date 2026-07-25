@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Equipment } from 'db/entities/workout';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Repository } from 'typeorm';
 import { EQUIPMENT_SEED_DATA } from '../data/equipment.seed-data';
 import { runUpsertSeed } from '../utils/seed.util';

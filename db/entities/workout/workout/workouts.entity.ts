@@ -1,14 +1,12 @@
-import { BaseEntity } from 'db/entities/shared';
+import { User } from 'db/entities/auth/user.entity';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import {
-  WorkoutExercise,
-  WorkoutFocusType,
-  WorkoutMuscle,
-  WorkoutSchedule,
-  WorkoutSession,
-} from '.';
+import { WorkoutExercise } from './workout-exercises.entity';
+import { WorkoutFocusType } from './workout-focus-types.entity';
+import { WorkoutMuscle } from './workout-muscles.entity';
+import { WorkoutSchedule } from './workout-schedule.entity';
+import { WorkoutSession } from './workout-sessions.entity';
 import { WorkoutWeeklyPlan } from './workout-weekly-plan.entity';
-import { User } from 'db/entities/auth';
 
 @Entity({ schema: 'workout', name: 'workouts' })
 export class Workout extends BaseEntity {
@@ -16,24 +14,27 @@ export class Workout extends BaseEntity {
   name: string;
 
   @Column({ type: 'text', nullable: true })
-  image_url?: string;
+  image_url: string | null;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
   @Column({ type: 'int', comment: 'seconds', nullable: true })
-  duration: number;
+  duration: number | null;
 
   @Column({ type: 'boolean', default: false })
   is_public: boolean;
 
-  @OneToMany(() => WorkoutExercise, (we) => we.workout)
+  @OneToMany(
+    () => WorkoutExercise,
+    (workoutExercise) => workoutExercise.workout,
+  )
   workout_exercises: WorkoutExercise[];
 
-  @OneToMany(() => WorkoutSchedule, (ws) => ws.workout)
+  @OneToMany(() => WorkoutSchedule, (schedule) => schedule.workout)
   schedules: WorkoutSchedule[];
 
-  @OneToMany(() => WorkoutMuscle, (wm) => wm.workout)
+  @OneToMany(() => WorkoutMuscle, (workoutMuscle) => workoutMuscle.workout)
   muscles: WorkoutMuscle[];
 
   @OneToMany(() => WorkoutWeeklyPlan, (plan) => plan.workout)
@@ -52,7 +53,9 @@ export class Workout extends BaseEntity {
   @JoinColumn({ name: 'source_workout_id' })
   source_workout: Workout | null;
 
-  @ManyToOne(() => WorkoutFocusType, (focus) => focus.workouts)
+  @ManyToOne(() => WorkoutFocusType, (focusType) => focusType.workouts, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'workout_focus_type_id' })
   workout_focus_type: WorkoutFocusType | null;
 

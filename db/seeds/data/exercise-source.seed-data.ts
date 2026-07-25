@@ -1,4 +1,4 @@
-import { ExerciseSource } from 'db/entities/workout';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { SEED_ACTOR } from '../types/seed.types';
 
 export type ExerciseSourceSeedData = Pick<

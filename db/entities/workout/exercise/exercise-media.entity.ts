@@ -1,7 +1,8 @@
-import { BaseEntity } from 'db/entities/shared';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { ExerciseMediaType } from 'src/workout/enums/workout.enum';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import { Exercise, ExerciseSource } from '.';
+import { ExerciseSource } from './exercise-source.entity';
+import { Exercise } from './exercises.entity';
 
 @Index(['exercise', 'display_order'], { unique: true })
 @Entity({ schema: 'workout', name: 'exercise_media' })

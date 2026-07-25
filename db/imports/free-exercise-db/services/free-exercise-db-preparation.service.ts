@@ -1,11 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Equipment,
-  ExerciseCategory,
-  ExerciseSource,
-  Muscle,
-} from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { Repository } from 'typeorm';
 import { mapFreeExerciseDbImages } from '../mappers/exercise-image.mapper';
 import { mapFreeExerciseDbExercise } from '../mappers/exercise.mapper';

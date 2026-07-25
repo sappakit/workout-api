@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Role } from 'db/entities/auth';
+import { Role } from 'db/entities/auth/role.entity';
 import { Repository } from 'typeorm';
 import { ROLE_SEED_DATA } from '../data/auth.seed-data';
 import { runUpsertSeed } from '../utils/seed.util';

@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Role } from 'db/entities/auth';
-import {
-  Equipment,
-  ExerciseCategory,
-  ExerciseSource,
-  Muscle,
-} from 'db/entities/workout';
+import { Role } from 'db/entities/auth/role.entity';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { seedEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';

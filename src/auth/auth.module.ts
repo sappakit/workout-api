@@ -4,7 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Role, User, UserProfile } from 'db/entities/auth';
+import { User } from 'db/entities/auth/user.entity';
 import { EmailModule } from 'src/email/email.module';
 import { HashingModule } from 'src/hashing/hashing.module';
 import { RedisModule } from 'src/redis/redis.module';
@@ -21,7 +21,7 @@ import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserProfile, Role]),
+    TypeOrmModule.forFeature([User]),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync({
       imports: [ConfigModule.forFeature(jwtConfig)],

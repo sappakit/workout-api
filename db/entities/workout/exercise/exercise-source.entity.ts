@@ -1,6 +1,7 @@
-import { BaseEntity } from 'db/entities/shared';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { Exercise, ExerciseMedia } from '.';
+import { ExerciseMedia } from './exercise-media.entity';
+import { Exercise } from './exercises.entity';
 
 @Entity({ schema: 'workout', name: 'exercise_sources' })
 export class ExerciseSource extends BaseEntity {
