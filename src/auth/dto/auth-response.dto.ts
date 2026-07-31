@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
 class AuthUserProfileDto {
@@ -56,16 +56,18 @@ export class AuthUserDto {
 
   @Expose()
   @Type(() => AuthUserProfileDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: AuthUserProfileDto,
     nullable: true,
   })
-  profile: AuthUserProfileDto | null;
+  profile?: AuthUserProfileDto | null;
 
   @Expose()
   @Type(() => AuthRoleDto)
-  @ApiProperty({ type: AuthRoleDto })
-  role: AuthRoleDto;
+  @ApiPropertyOptional({
+    type: AuthRoleDto,
+  })
+  role?: AuthRoleDto;
 }
 
 export class LoginResponseDto {

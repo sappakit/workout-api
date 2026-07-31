@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
@@ -33,15 +34,22 @@ export class ExerciseService {
     private readonly workoutSessionExerciseRepo: Repository<WorkoutSessionExercise>,
     @InjectRepository(WorkoutSessionExerciseSet)
     private readonly workoutSessionExerciseSetRepo: Repository<WorkoutSessionExerciseSet>,
+    @InjectRepository(ExerciseCategory)
+    private readonly exerciseCategoryRepo: Repository<ExerciseCategory>,
   ) {}
 
   // Exercises
   async findAllExercises(query: ExerciseQueryDto) {
     const options: FindManyOptions<Exercise> = {
       relations: {
+        category: true,
         media: true,
-        muscles: { muscle: true },
-        equipment_links: { equipment: true },
+        muscles: {
+          muscle: true,
+        },
+        equipment_links: {
+          equipment: true,
+        },
       },
       order: {
         name: 'ASC',
@@ -53,7 +61,8 @@ export class ExerciseService {
 
     const searchFields = [
       'name',
-      'exercise_type',
+      'category.name',
+      'category.code',
       'difficulty_level',
       'muscles.muscle.name',
       // 'equipment_links.equipment.name',
@@ -61,8 +70,8 @@ export class ExerciseService {
 
     const filters: RepositoryFilterConfig[] = [
       {
-        queryKey: 'exerciseTypes',
-        field: 'exercise_type',
+        queryKey: 'categoryIds',
+        field: 'category.id',
         operator: 'in',
       },
       {
@@ -295,6 +304,25 @@ export class ExerciseService {
 
     return this.paginationService.paginateRepository(
       this.equipmentRepo,
+      options,
+      query,
+    );
+  }
+
+  // Exercise categories
+  async findAllExerciseCategories(query: PagingDto) {
+    const options: FindManyOptions<ExerciseCategory> = {
+      where: {
+        is_active: true,
+      },
+      order: {
+        display_order: 'ASC',
+        name: 'ASC',
+      },
+    };
+
+    return this.paginationService.paginateRepository(
+      this.exerciseCategoryRepo,
       options,
       query,
     );

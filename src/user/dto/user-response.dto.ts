@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
 class UserProfileDto {
@@ -50,9 +50,9 @@ export class UserDto {
 
   @Expose()
   @Type(() => UserProfileDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: UserProfileDto,
     nullable: true,
   })
-  profile: UserProfileDto | null;
+  profile?: UserProfileDto | null;
 }

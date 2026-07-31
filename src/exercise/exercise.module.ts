@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
@@ -19,6 +20,7 @@ import { ExerciseService } from './exercise.service';
       Equipment,
       WorkoutSessionExercise,
       WorkoutSessionExerciseSet,
+      ExerciseCategory,
     ]),
   ],
   controllers: [ExerciseController, MusclesController, EquipmentController],

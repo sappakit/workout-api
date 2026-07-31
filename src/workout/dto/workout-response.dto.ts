@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import {
   ExerciseDto,
@@ -76,13 +76,13 @@ class WorkoutExerciseDto {
 
   @Expose()
   @Type(() => ExerciseDto)
-  @ApiProperty({ type: ExerciseDto })
-  exercise: ExerciseDto;
+  @ApiPropertyOptional({ type: ExerciseDto })
+  exercise?: ExerciseDto;
 
   @Expose()
   @Type(() => WorkoutExerciseSetDto)
-  @ApiProperty({ type: [WorkoutExerciseSetDto] })
-  sets: WorkoutExerciseSetDto[];
+  @ApiPropertyOptional({ type: [WorkoutExerciseSetDto] })
+  sets?: WorkoutExerciseSetDto[];
 }
 
 class WorkoutMuscleDto {
@@ -92,8 +92,8 @@ class WorkoutMuscleDto {
 
   @Expose()
   @Type(() => MuscleDto)
-  @ApiProperty({ type: MuscleDto })
-  muscle: MuscleDto;
+  @ApiPropertyOptional({ type: MuscleDto })
+  muscle?: MuscleDto;
 }
 
 export class WorkoutFocusTypeDto {
@@ -143,21 +143,21 @@ export class WorkoutDto {
 
   @Expose({ name: 'workout_exercises' })
   @Type(() => WorkoutExerciseDto)
-  @ApiProperty({ type: [WorkoutExerciseDto] })
-  workoutExercises: WorkoutExerciseDto[];
+  @ApiPropertyOptional({ type: [WorkoutExerciseDto] })
+  workoutExercises?: WorkoutExerciseDto[];
 
   @Expose()
   @Type(() => WorkoutMuscleDto)
-  @ApiProperty({ type: [WorkoutMuscleDto] })
-  muscles: WorkoutMuscleDto[];
+  @ApiPropertyOptional({ type: [WorkoutMuscleDto] })
+  muscles?: WorkoutMuscleDto[];
 
   @Expose({ name: 'workout_focus_type' })
   @Type(() => WorkoutFocusTypeDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: WorkoutFocusTypeDto,
     nullable: true,
   })
-  workoutFocusType: WorkoutFocusTypeDto | null;
+  workoutFocusType?: WorkoutFocusTypeDto | null;
 }
 
 export class WorkoutScheduleDto {
@@ -179,8 +179,8 @@ export class WorkoutScheduleDto {
 
   @Expose()
   @Type(() => WorkoutDto)
-  @ApiProperty({ type: WorkoutDto })
-  workout: WorkoutDto;
+  @ApiPropertyOptional({ type: WorkoutDto })
+  workout?: WorkoutDto;
 }
 
 class WorkoutSessionExerciseSetDto extends WorkoutSetValueDto {
@@ -239,13 +239,13 @@ class WorkoutSessionExerciseDto {
 
   @Expose()
   @Type(() => ExerciseDto)
-  @ApiProperty({ type: ExerciseDto })
-  exercise: ExerciseDto;
+  @ApiPropertyOptional({ type: ExerciseDto })
+  exercise?: ExerciseDto;
 
   @Expose()
   @Type(() => WorkoutSessionExerciseSetDto)
-  @ApiProperty({ type: [WorkoutSessionExerciseSetDto] })
-  sets: WorkoutSessionExerciseSetDto[];
+  @ApiPropertyOptional({ type: [WorkoutSessionExerciseSetDto] })
+  sets?: WorkoutSessionExerciseSetDto[];
 }
 
 export class WorkoutSessionDto {
@@ -307,16 +307,16 @@ export class WorkoutSessionDto {
 
   @Expose()
   @Type(() => WorkoutDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: WorkoutDto,
     nullable: true,
   })
-  workout: WorkoutDto | null;
+  workout?: WorkoutDto | null;
 
   @Expose({ name: 'session_exercises' })
   @Type(() => WorkoutSessionExerciseDto)
-  @ApiProperty({ type: [WorkoutSessionExerciseDto] })
-  sessionExercises: WorkoutSessionExerciseDto[];
+  @ApiPropertyOptional({ type: [WorkoutSessionExerciseDto] })
+  sessionExercises?: WorkoutSessionExerciseDto[];
 }
 
 export class WorkoutCurrentDto {
@@ -487,8 +487,11 @@ export class WorkoutTodayOverviewDto {
 
 export class WorkoutWeeklyPlanDayDto {
   @Expose()
-  @ApiProperty()
-  id: number;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
+  id: number | null;
 
   @Expose({ name: 'day_of_week' })
   @ApiProperty({

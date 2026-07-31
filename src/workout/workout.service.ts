@@ -20,10 +20,11 @@ import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
 import { RepositoryFilterConfig } from 'src/common/pagination/types/pagination.types';
 import { ExerciseService } from 'src/exercise/exercise.service';
-import { Between, DataSource, FindManyOptions, In, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
 import {
   getISOWeekday,
   getUtcDayRange,
+  getUtcWeekRange,
   toUTCDateString,
 } from 'utils/time.util';
 import {
@@ -256,11 +257,17 @@ export class WorkoutService {
       const workoutExerciseSetRepo = manager.getRepository(WorkoutExerciseSet);
       const workoutMuscleRepo = manager.getRepository(WorkoutMuscle);
 
+      // Only allow the owner to update the workout
       const workout = await workoutRepo.findOne({
-        where: { id },
+        where: {
+          id,
+          user: { id: user.sub },
+        },
         relations: {
           workout_focus_type: true,
-          muscles: { muscle: true },
+          muscles: {
+            muscle: true,
+          },
         },
       });
 
@@ -268,7 +275,6 @@ export class WorkoutService {
         throw new NotFoundException('Workout not found');
       }
 
-      // Validate payload
       const { focusType, exerciseMap, uniqueMuscleIds } =
         await validateWorkoutSavePayload(manager, payload);
 
@@ -282,148 +288,203 @@ export class WorkoutService {
 
       // Update workout muscles
       const existingMuscleIds = workout.muscles
-        .map((item) => item.muscle.id)
+        .map((workoutMuscle) => workoutMuscle.muscle.id)
         .sort((a, b) => a - b);
 
       const isSameMuscles =
         existingMuscleIds.length === uniqueMuscleIds.length &&
-        existingMuscleIds.every((id, i) => id === uniqueMuscleIds[i]);
+        existingMuscleIds.every(
+          (muscleId, index) => muscleId === uniqueMuscleIds[index],
+        );
 
       if (!isSameMuscles) {
         await workoutMuscleRepo.delete({
-          workout: { id: workout.id },
+          workout: {
+            id: workout.id,
+          },
         });
 
         if (uniqueMuscleIds.length > 0) {
           const workoutMuscles = uniqueMuscleIds.map((muscleId) => ({
-            workout: { id: workout.id },
-            muscle: { id: muscleId },
+            workout: {
+              id: workout.id,
+            },
+            muscle: {
+              id: muscleId,
+            },
           }));
 
           await workoutMuscleRepo.insert(workoutMuscles);
         }
       }
 
-      // Load existing workout exercises with sets
+      // Load existing workout exercises and sets
       const existingWorkoutExercises = await workoutExerciseRepo.find({
-        where: { workout: { id: workout.id } },
+        where: {
+          workout: {
+            id: workout.id,
+          },
+        },
         relations: {
           sets: true,
         },
       });
 
       const existingById = new Map(
-        existingWorkoutExercises.map((item) => [item.id, item]),
+        existingWorkoutExercises.map((workoutExercise) => [
+          workoutExercise.id,
+          workoutExercise,
+        ]),
       );
 
       const incomingIds = new Set(
         payload.workoutExercises
-          .map((item) => item.id)
-          .filter((id): id is number => id != null),
+          .map((workoutExercise) => workoutExercise.id)
+          .filter(
+            (workoutExerciseId): workoutExerciseId is number =>
+              workoutExerciseId != null,
+          ),
       );
 
       // Delete removed workout exercises
       const toDeleteIds = existingWorkoutExercises
-        .filter((item) => !incomingIds.has(item.id))
-        .map((item) => item.id);
+        .filter((workoutExercise) => !incomingIds.has(workoutExercise.id))
+        .map((workoutExercise) => workoutExercise.id);
 
       if (toDeleteIds.length > 0) {
         await workoutExerciseSetRepo
           .createQueryBuilder()
           .delete()
           .from(WorkoutExerciseSet)
-          .where('workout_exercise_id IN (:...ids)', { ids: toDeleteIds })
+          .where('workout_exercise_id IN (:...ids)', {
+            ids: toDeleteIds,
+          })
           .execute();
 
         await workoutExerciseRepo.delete(toDeleteIds);
       }
 
-      // Split incoming workout exercises into update/create groups
+      // Split incoming exercises into update and create groups
       const updateItems = payload.workoutExercises.filter(
-        (item): item is typeof item & { id: number } => item.id != null,
+        (
+          workoutExercise,
+        ): workoutExercise is typeof workoutExercise & { id: number } =>
+          workoutExercise.id != null,
       );
 
       const createItems = payload.workoutExercises.filter(
-        (item) => item.id == null,
+        (workoutExercise) => workoutExercise.id == null,
       );
 
       // Update existing workout exercises
-      const toUpdate = updateItems.map((item) => {
-        const existing = existingById.get(item.id);
-
-        if (!existing) {
-          throw new BadRequestException(
-            `Workout exercise with id ${item.id} not found`,
+      const workoutExercisesToUpdate = updateItems.map(
+        (incomingWorkoutExercise) => {
+          const existingWorkoutExercise = existingById.get(
+            incomingWorkoutExercise.id,
           );
-        }
 
-        existing.order_index = item.orderIndex;
-        existing.rest_time = item.restTime;
-        existing.exercise = exerciseMap.get(item.exerciseId)!;
+          if (!existingWorkoutExercise) {
+            throw new BadRequestException(
+              `Workout exercise with id ${incomingWorkoutExercise.id} not found`,
+            );
+          }
 
-        return existing;
-      });
+          const exercise = exerciseMap.get(incomingWorkoutExercise.exerciseId);
 
-      if (toUpdate.length > 0) {
-        await workoutExerciseRepo.save(toUpdate);
+          if (!exercise) {
+            throw new BadRequestException(
+              `Exercise with id ${incomingWorkoutExercise.exerciseId} not found`,
+            );
+          }
+
+          existingWorkoutExercise.order_index =
+            incomingWorkoutExercise.orderIndex;
+          existingWorkoutExercise.rest_time = incomingWorkoutExercise.restTime;
+          existingWorkoutExercise.exercise = exercise;
+
+          return existingWorkoutExercise;
+        },
+      );
+
+      if (workoutExercisesToUpdate.length > 0) {
+        await workoutExerciseRepo.save(workoutExercisesToUpdate);
       }
 
-      // Sync sets for existing workout exercises
-      for (const item of updateItems) {
-        const existing = existingById.get(item.id);
+      // Synchronize sets for existing workout exercises
+      for (const incomingWorkoutExercise of updateItems) {
+        const existingWorkoutExercise = existingById.get(
+          incomingWorkoutExercise.id,
+        );
 
-        if (!existing) {
+        if (!existingWorkoutExercise) {
           throw new BadRequestException(
-            `Workout exercise with id ${item.id} not found`,
+            `Workout exercise with id ${incomingWorkoutExercise.id} not found`,
           );
         }
 
-        const existingSets = existing.sets ?? [];
+        const existingSets = existingWorkoutExercise.sets ?? [];
 
         const existingSetById = new Map(
-          existingSets.map((set) => [set.id, set]),
+          existingSets.map((workoutExerciseSet) => [
+            workoutExerciseSet.id,
+            workoutExerciseSet,
+          ]),
         );
 
         const incomingSetIds = new Set(
-          item.sets
-            .map((set) => set.id)
-            .filter((setId): setId is number => setId != null),
+          incomingWorkoutExercise.sets
+            .map((workoutExerciseSet) => workoutExerciseSet.id)
+            .filter(
+              (workoutExerciseSetId): workoutExerciseSetId is number =>
+                workoutExerciseSetId != null,
+            ),
         );
 
         // Delete removed sets
         const setIdsToDelete = existingSets
-          .filter((set) => !incomingSetIds.has(set.id))
-          .map((set) => set.id);
+          .filter(
+            (workoutExerciseSet) => !incomingSetIds.has(workoutExerciseSet.id),
+          )
+          .map((workoutExerciseSet) => workoutExerciseSet.id);
 
         if (setIdsToDelete.length > 0) {
           await workoutExerciseSetRepo.delete(setIdsToDelete);
         }
 
-        // Split sets into update/create groups
-        const updateSetItems = item.sets.filter(
-          (set): set is typeof set & { id: number } => set.id != null,
+        const updateSetItems = incomingWorkoutExercise.sets.filter(
+          (
+            workoutExerciseSet,
+          ): workoutExerciseSet is typeof workoutExerciseSet & {
+            id: number;
+          } => workoutExerciseSet.id != null,
         );
 
-        const createSetItems = item.sets.filter((set) => set.id == null);
+        const createSetItems = incomingWorkoutExercise.sets.filter(
+          (workoutExerciseSet) => workoutExerciseSet.id == null,
+        );
 
         // Update existing sets
-        const setsToUpdate = updateSetItems.map((set) => {
-          const existingSet = existingSetById.get(set.id);
-
-          if (!existingSet) {
-            throw new BadRequestException(
-              `Workout exercise set with id ${set.id} not found`,
+        const setsToUpdate = updateSetItems.map(
+          (incomingWorkoutExerciseSet) => {
+            const existingSet = existingSetById.get(
+              incomingWorkoutExerciseSet.id,
             );
-          }
 
-          existingSet.set_number = set.setNumber;
-          existingSet.reps = set.reps;
-          existingSet.weight = set.weight;
-          existingSet.distance = set.distance;
-          existingSet.duration = set.duration;
+            if (!existingSet) {
+              throw new BadRequestException(
+                `Workout exercise set with id ${incomingWorkoutExerciseSet.id} not found`,
+              );
+            }
 
-          return existingSet;
-        });
+            existingSet.set_number = incomingWorkoutExerciseSet.setNumber;
+            existingSet.reps = incomingWorkoutExerciseSet.reps;
+            existingSet.weight = incomingWorkoutExerciseSet.weight;
+            existingSet.distance = incomingWorkoutExerciseSet.distance;
+            existingSet.duration = incomingWorkoutExerciseSet.duration;
+
+            return existingSet;
+          },
+        );
 
         if (setsToUpdate.length > 0) {
           await workoutExerciseSetRepo.save(setsToUpdate);
@@ -431,13 +492,15 @@ export class WorkoutService {
 
         // Create new sets
         if (createSetItems.length > 0) {
-          const newSets = createSetItems.map((set) => ({
-            workout_exercise: { id: existing.id },
-            set_number: set.setNumber,
-            reps: set.reps,
-            weight: set.weight,
-            distance: set.distance,
-            duration: set.duration,
+          const newSets = createSetItems.map((incomingWorkoutExerciseSet) => ({
+            workout_exercise: {
+              id: existingWorkoutExercise.id,
+            },
+            set_number: incomingWorkoutExerciseSet.setNumber,
+            reps: incomingWorkoutExerciseSet.reps,
+            weight: incomingWorkoutExerciseSet.weight,
+            distance: incomingWorkoutExerciseSet.distance,
+            duration: incomingWorkoutExerciseSet.duration,
           }));
 
           await workoutExerciseSetRepo.insert(newSets);
@@ -446,29 +509,44 @@ export class WorkoutService {
 
       // Create new workout exercises
       if (createItems.length > 0) {
-        const newWorkoutExercises = createItems.map((item) => ({
-          order_index: item.orderIndex,
-          rest_time: item.restTime,
-          workout: { id: workout.id },
-          exercise: { id: item.exerciseId },
-        }));
+        const newWorkoutExercises = createItems.map(
+          (incomingWorkoutExercise) => ({
+            order_index: incomingWorkoutExercise.orderIndex,
+            rest_time: incomingWorkoutExercise.restTime,
+            workout: {
+              id: workout.id,
+            },
+            exercise: {
+              id: incomingWorkoutExercise.exerciseId,
+            },
+          }),
+        );
 
         const savedNewWorkoutExercises =
           await workoutExerciseRepo.save(newWorkoutExercises);
 
-        // Create workout exercise sets
-        const newWorkoutExerciseSets = createItems.flatMap((item, index) => {
-          const savedWorkoutExercise = savedNewWorkoutExercises[index];
+        const newWorkoutExerciseSets = createItems.flatMap(
+          (incomingWorkoutExercise, index) => {
+            const savedWorkoutExercise = savedNewWorkoutExercises[index];
 
-          return item.sets.map((set) => ({
-            workout_exercise: { id: savedWorkoutExercise.id },
-            set_number: set.setNumber,
-            reps: set.reps,
-            weight: set.weight,
-            distance: set.distance,
-            duration: set.duration,
-          }));
-        });
+            if (!savedWorkoutExercise) {
+              return [];
+            }
+
+            return incomingWorkoutExercise.sets.map(
+              (incomingWorkoutExerciseSet) => ({
+                workout_exercise: {
+                  id: savedWorkoutExercise.id,
+                },
+                set_number: incomingWorkoutExerciseSet.setNumber,
+                reps: incomingWorkoutExerciseSet.reps,
+                weight: incomingWorkoutExerciseSet.weight,
+                distance: incomingWorkoutExerciseSet.distance,
+                duration: incomingWorkoutExerciseSet.duration,
+              }),
+            );
+          },
+        );
 
         if (newWorkoutExerciseSets.length > 0) {
           await workoutExerciseSetRepo.insert(newWorkoutExerciseSets);
@@ -476,7 +554,9 @@ export class WorkoutService {
       }
     });
 
-    return { message: 'Workout updated successfully' };
+    return {
+      message: 'Workout updated successfully',
+    };
   }
 
   // Workout focus type
@@ -682,15 +762,23 @@ export class WorkoutService {
     user: ActiveUserData,
     today = new Date(),
   ) {
-    const { startOfDay, endOfDay } = getUtcDayRange(today);
+    const { startOfDay, startOfNextDay } = getUtcDayRange(today);
 
-    return this.workoutSessionRepo.exists({
-      where: {
-        user: { id: user.sub },
+    return this.workoutSessionRepo
+      .createQueryBuilder('session')
+      .where('session.user_id = :userId', {
+        userId: user.sub,
+      })
+      .andWhere('session.status = :status', {
         status: WorkoutSessionStatus.COMPLETED,
-        ended_at: Between(startOfDay, endOfDay),
-      },
-    });
+      })
+      .andWhere('session.ended_at >= :startOfDay', {
+        startOfDay,
+      })
+      .andWhere('session.ended_at < :startOfNextDay', {
+        startOfNextDay,
+      })
+      .getExists();
   }
 
   // Get today's workout overview
@@ -984,7 +1072,11 @@ export class WorkoutService {
   }
 
   // Finish session
-  async finishWorkoutSession(id: number, body: FinishWorkoutSessionDto) {
+  async finishWorkoutSession(
+    id: number,
+    body: FinishWorkoutSessionDto,
+    user: ActiveUserData,
+  ) {
     await this.dataSource.transaction(async (manager) => {
       const workoutSessionRepo = manager.getRepository(WorkoutSession);
       const workoutSessionExerciseRepo = manager.getRepository(
@@ -996,9 +1088,12 @@ export class WorkoutService {
       const exerciseRepo = manager.getRepository(Exercise);
       const workoutScheduleRepo = manager.getRepository(WorkoutSchedule);
 
-      // 1) Load session
+      // 1) Load the user's session
       const session = await workoutSessionRepo.findOne({
-        where: { id },
+        where: {
+          id,
+          user: { id: user.sub },
+        },
         relations: {
           user: true,
           workout: true,
@@ -1014,14 +1109,13 @@ export class WorkoutService {
         WorkoutSessionStatus.PAUSED,
       ];
 
-      // Only allow session with 'allowedStatuses' to be finished
       if (!allowedStatuses.includes(session.status)) {
         throw new BadRequestException(
           'Workout session must be active or paused to be finished.',
         );
       }
 
-      // 2) Load current db children
+      // 2) Load current database children
       const existingSessionExercises = await workoutSessionExerciseRepo.find({
         where: {
           session: { id: session.id },
@@ -1045,10 +1139,10 @@ export class WorkoutService {
         existingSessionExercises.map((item) => [item.id, item]),
       );
 
-      // Validate duplicate ids in payload
+      // Validate duplicate exercise IDs in the payload
       const incomingExerciseIds = body.sessionExercises
         .map((item) => item.id)
-        .filter((id): id is number => id != null);
+        .filter((exerciseId): exerciseId is number => exerciseId != null);
 
       if (new Set(incomingExerciseIds).size !== incomingExerciseIds.length) {
         throw new BadRequestException(
@@ -1056,7 +1150,7 @@ export class WorkoutService {
         );
       }
 
-      // Validate all referenced existing exercise rows belong to this session
+      // Validate that referenced session exercises belong to this session
       for (const incomingExercise of body.sessionExercises) {
         if (
           incomingExercise.id != null &&
@@ -1068,7 +1162,7 @@ export class WorkoutService {
         }
       }
 
-      // Load exercise entities needed for new session exercise rows
+      // Load exercises needed for newly added session exercise rows
       const newExerciseIds = [
         ...new Set(
           body.sessionExercises
@@ -1080,32 +1174,34 @@ export class WorkoutService {
       const exerciseEntities =
         newExerciseIds.length > 0
           ? await exerciseRepo.find({
-              where: { id: In(newExerciseIds) },
+              where: {
+                id: In(newExerciseIds),
+              },
             })
           : [];
 
       const exerciseEntityMap = new Map(
-        exerciseEntities.map((item) => [item.id, item]),
+        exerciseEntities.map((exercise) => [exercise.id, exercise]),
       );
 
       for (const incomingExercise of body.sessionExercises) {
-        if (incomingExercise.id == null) {
-          const exercise = exerciseEntityMap.get(incomingExercise.exerciseId);
+        if (incomingExercise.id != null) {
+          continue;
+        }
 
-          if (!exercise) {
-            throw new NotFoundException(
-              `Exercise id ${incomingExercise.exerciseId} not found.`,
-            );
-          }
+        const exercise = exerciseEntityMap.get(incomingExercise.exerciseId);
+
+        if (!exercise) {
+          throw new NotFoundException(
+            `Exercise id ${incomingExercise.exerciseId} not found.`,
+          );
         }
       }
 
-      // Track kept session_exercise ids to later delete removed rows
       const keptSessionExerciseIds: number[] = [];
 
-      // 3) Upsert workout_session_exercises + nested sets
+      // 3) Upsert session exercises and their sets
       for (const incomingExercise of body.sessionExercises) {
-        // Upsert workout_session_exercises
         const sessionExercise = await this.upsertSessionExercise({
           incomingExercise,
           session,
@@ -1115,18 +1211,17 @@ export class WorkoutService {
           exerciseRepo,
         });
 
-        // Add sessionExercise ID to kept list
         keptSessionExerciseIds.push(sessionExercise.id);
 
-        // Sync sets for this session exercise
         const existingSets = sessionExercise.sets ?? [];
+
         const existingSetMap = new Map(
-          existingSets.map((item) => [item.id, item]),
+          existingSets.map((set) => [set.id, set]),
         );
 
         const incomingSetIds = incomingExercise.sets
-          .map((item) => item.id)
-          .filter((id): id is number => id != null);
+          .map((set) => set.id)
+          .filter((setId): setId is number => setId != null);
 
         if (new Set(incomingSetIds).size !== incomingSetIds.length) {
           throw new BadRequestException(
@@ -1152,27 +1247,28 @@ export class WorkoutService {
             workoutSessionExerciseSetRepo,
           });
 
-          // Add set ID to kept list
           keptSetIds.push(setEntity.id);
         }
 
-        // DELETE removed sets
+        // Delete removed sets
         const setIdsToDelete = existingSets
-          .filter((item) => !keptSetIds.includes(item.id))
-          .map((item) => item.id);
+          .filter((set) => !keptSetIds.includes(set.id))
+          .map((set) => set.id);
 
         if (setIdsToDelete.length > 0) {
           await workoutSessionExerciseSetRepo.delete(setIdsToDelete);
         }
       }
 
-      // 4) DELETE removed workout_session_exercises
+      // 4) Delete removed session exercises
       const sessionExerciseIdsToDelete = existingSessionExercises
-        .filter((item) => !keptSessionExerciseIds.includes(item.id))
-        .map((item) => item.id);
+        .filter(
+          (sessionExercise) =>
+            !keptSessionExerciseIds.includes(sessionExercise.id),
+        )
+        .map((sessionExercise) => sessionExercise.id);
 
       if (sessionExerciseIdsToDelete.length > 0) {
-        // Delete child sets first
         await workoutSessionExerciseSetRepo.delete({
           session_exercise: {
             id: In(sessionExerciseIdsToDelete),
@@ -1182,23 +1278,24 @@ export class WorkoutService {
         await workoutSessionExerciseRepo.delete(sessionExerciseIdsToDelete);
       }
 
-      // 5) Update workout_session
+      // 5) Complete the session
       session.status = WorkoutSessionStatus.COMPLETED;
       session.ended_at = new Date(body.endedAt);
       session.paused_at = null;
       session.total_duration = body.totalDuration ?? null;
       session.total_paused_duration = body.totalPausedDuration ?? 0;
       session.calories_burned = body.caloriesBurned ?? null;
+      session.updated_by = user.username;
 
       await workoutSessionRepo.save(session);
 
-      // 6) Update today's schedule if this completed session matches today's scheduled workout
+      // 6) Complete today's matching schedule
       if (session.workout) {
         const finishedDate = toUTCDateString(session.ended_at);
 
         const schedule = await workoutScheduleRepo.findOne({
           where: {
-            user: { id: session.user.id },
+            user: { id: user.sub },
             workout: { id: session.workout.id },
             scheduled_date: finishedDate,
             status: WorkoutScheduleStatus.PLANNED,
@@ -1207,12 +1304,16 @@ export class WorkoutService {
 
         if (schedule) {
           schedule.status = WorkoutScheduleStatus.COMPLETED;
+          schedule.updated_by = user.username;
+
           await workoutScheduleRepo.save(schedule);
         }
       }
     });
 
-    return { message: 'Workout session finished successfully.' };
+    return {
+      message: 'Workout session finished successfully.',
+    };
   }
 
   // Upsert session exercise
@@ -1289,9 +1390,10 @@ export class WorkoutService {
             : null,
         order_index: incomingExercise.orderIndex,
         rest_time: incomingExercise.restTime,
-        completed_at: incomingExercise.completedAt
-          ? new Date(incomingExercise.completedAt)
-          : null,
+        completed_at:
+          incomingExercise.completedAt != null
+            ? new Date(incomingExercise.completedAt)
+            : null,
       });
 
       sessionExercise = await workoutSessionExerciseRepo.save(sessionExercise);
@@ -1334,12 +1436,14 @@ export class WorkoutService {
           ? ({ id: incomingSet.workoutExerciseSetId } as WorkoutExerciseSet)
           : null;
 
-      setEntity.performed_at = incomingSet.performedAt
-        ? new Date(incomingSet.performedAt)
-        : null;
-      setEntity.completed_at = incomingSet.completedAt
-        ? new Date(incomingSet.completedAt)
-        : null;
+      setEntity.performed_at =
+        incomingSet.performedAt != null
+          ? new Date(incomingSet.performedAt)
+          : null;
+      setEntity.completed_at =
+        incomingSet.completedAt != null
+          ? new Date(incomingSet.completedAt)
+          : null;
 
       setEntity = await workoutSessionExerciseSetRepo.save(setEntity);
     } else {
@@ -1355,12 +1459,14 @@ export class WorkoutService {
         weight: incomingSet.weight,
         distance: incomingSet.distance,
         duration: incomingSet.duration,
-        performed_at: incomingSet.performedAt
-          ? new Date(incomingSet.performedAt)
-          : null,
-        completed_at: incomingSet.completedAt
-          ? new Date(incomingSet.completedAt)
-          : null,
+        performed_at:
+          incomingSet.performedAt != null
+            ? new Date(incomingSet.performedAt)
+            : null,
+        completed_at:
+          incomingSet.completedAt != null
+            ? new Date(incomingSet.completedAt)
+            : null,
       });
 
       setEntity = await workoutSessionExerciseSetRepo.save(setEntity);
@@ -1373,26 +1479,31 @@ export class WorkoutService {
   async getProgressOverview(user: ActiveUserData) {
     // TODO: refactor to include weekly/yearly/all time
     const { queryStartDate, queryEndDate, displayStartDate, displayEndDate } =
-      this.getCurrentWeekRange();
+      getUtcWeekRange();
 
     const sessions = await this.workoutSessionRepo
       .createQueryBuilder('session')
-
       .leftJoinAndSelect('session.workout', 'workout')
       .leftJoinAndSelect('session.session_exercises', 'sessionExercise')
       .leftJoinAndSelect('sessionExercise.exercise', 'exercise')
+      .leftJoinAndSelect('exercise.media', 'exerciseMedia')
       .leftJoinAndSelect('sessionExercise.sets', 'set')
-
-      .where('session.user_id = :userId', { userId: user.sub })
+      .where('session.user_id = :userId', {
+        userId: user.sub,
+      })
       .andWhere('session.status = :status', {
         status: WorkoutSessionStatus.COMPLETED,
       })
-      .andWhere('session.ended_at >= :queryStartDate', { queryStartDate })
-      .andWhere('session.ended_at < :queryEndDate', { queryEndDate })
-
+      .andWhere('session.ended_at >= :queryStartDate', {
+        queryStartDate,
+      })
+      .andWhere('session.ended_at < :queryEndDate', {
+        queryEndDate,
+      })
       .orderBy('session.ended_at', 'DESC')
       .addOrderBy('sessionExercise.order_index', 'ASC')
       .addOrderBy('set.set_number', 'ASC')
+      .addOrderBy('exerciseMedia.display_order', 'ASC')
       .getMany();
 
     return {
@@ -1402,38 +1513,6 @@ export class WorkoutService {
       summary: this.getProgressSummary(sessions),
       volumeTrend: this.getWeeklyVolumeTrend(sessions),
       bestPerformances: this.getBestPerformances(sessions),
-    };
-  }
-
-  private getCurrentWeekRange() {
-    const now = new Date();
-
-    const queryStartDate = new Date(now);
-    const currentDay = queryStartDate.getDay(); // 0 = Sunday, 6 = Saturday
-
-    // Calculate how many days to go back to reach Monday
-    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-
-    // Set the date and time to Monday at midnight for the current week
-    queryStartDate.setDate(queryStartDate.getDate() - daysFromMonday);
-    queryStartDate.setHours(0, 0, 0, 0);
-
-    const queryEndDate = new Date(queryStartDate);
-    queryEndDate.setDate(queryEndDate.getDate() + 7); // Next Monday at midnight
-
-    // Display date for frontend
-    const displayStartDate = new Date(queryStartDate);
-
-    const displayEndDate = new Date(queryEndDate);
-
-    // Show the inclusive end of the week (Sunday)
-    displayEndDate.setDate(displayEndDate.getDate() - 1);
-
-    return {
-      queryStartDate,
-      queryEndDate,
-      displayStartDate,
-      displayEndDate,
     };
   }
 
@@ -1457,16 +1536,20 @@ export class WorkoutService {
       { label: 'Thu', day: 4 },
       { label: 'Fri', day: 5 },
       { label: 'Sat', day: 6 },
-      { label: 'Sun', day: 0 },
+      { label: 'Sun', day: 7 },
     ];
 
     return days.map((day) => {
       const volumeKg = sessions.reduce((total, session) => {
-        if (!session.ended_at) return total;
+        if (!session.ended_at) {
+          return total;
+        }
 
-        const sessionDay = session.ended_at.getDay();
+        const sessionDay = getISOWeekday(session.ended_at);
 
-        if (sessionDay !== day.day) return total;
+        if (sessionDay !== day.day) {
+          return total;
+        }
 
         return total + this.getSessionVolumeKg(session);
       }, 0);
@@ -1501,8 +1584,7 @@ export class WorkoutService {
         const exerciseName = exercise?.name;
 
         const primaryMedia =
-          exercise?.media?.find((media) => media.is_primary) ??
-          exercise?.media?.[0];
+          exercise.media.find((media) => media.is_primary) ?? exercise.media[0];
 
         const exerciseImageUrl = primaryMedia?.url ?? null;
 
@@ -1748,7 +1830,7 @@ export class WorkoutService {
       ...new Set(
         workoutDays
           .map((day) => day.workoutId)
-          .filter((workoutId): workoutId is number => !!workoutId),
+          .filter((workoutId): workoutId is number => workoutId != null),
       ),
     ];
 
@@ -1775,7 +1857,7 @@ export class WorkoutService {
     );
 
     for (const day of workoutDays) {
-      if (!day.workoutId || !workoutById.has(day.workoutId)) {
+      if (day.workoutId == null || !workoutById.has(day.workoutId)) {
         throw new NotFoundException(
           `Workout not found for day ${day.dayOfWeek}`,
         );

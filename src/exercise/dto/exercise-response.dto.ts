@@ -1,4 +1,8 @@
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
   DifficultyLevel,
@@ -81,8 +85,8 @@ class ExerciseMuscleItemDto {
 
   @Expose()
   @Type(() => MuscleDto)
-  @ApiProperty({ type: MuscleDto })
-  muscle: MuscleDto;
+  @ApiPropertyOptional({ type: MuscleDto })
+  muscle?: MuscleDto;
 }
 
 class ExerciseEquipmentDto {
@@ -92,8 +96,8 @@ class ExerciseEquipmentDto {
 
   @Expose()
   @Type(() => EquipmentDto)
-  @ApiProperty({ type: EquipmentDto })
-  equipment: EquipmentDto;
+  @ApiPropertyOptional({ type: EquipmentDto })
+  equipment?: EquipmentDto;
 }
 
 class ExerciseSourceDto {
@@ -195,11 +199,11 @@ class ExerciseMediaDto {
 
   @Expose()
   @Type(() => ExerciseSourceDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: ExerciseSourceDto,
     nullable: true,
   })
-  source: ExerciseSourceDto | null;
+  source?: ExerciseSourceDto | null;
 }
 
 class ExerciseConfigDto {
@@ -270,8 +274,8 @@ export class ExerciseDto extends ExerciseConfigDto {
 
   @Expose()
   @Type(() => ExerciseCategoryDto)
-  @ApiProperty({ type: ExerciseCategoryDto })
-  category: ExerciseCategoryDto;
+  @ApiPropertyOptional({ type: ExerciseCategoryDto })
+  category?: ExerciseCategoryDto;
 
   @Expose({ name: 'difficulty_level' })
   @ApiProperty({
@@ -303,32 +307,32 @@ export class ExerciseDto extends ExerciseConfigDto {
 
   @Expose()
   @Type(() => ExerciseSourceDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: ExerciseSourceDto,
     nullable: true,
   })
-  source: ExerciseSourceDto | null;
+  source?: ExerciseSourceDto | null;
 
   @Expose()
   @Type(() => ExerciseMediaDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [ExerciseMediaDto],
   })
-  media: ExerciseMediaDto[];
+  media?: ExerciseMediaDto[];
 
   @Expose()
   @Type(() => ExerciseMuscleItemDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [ExerciseMuscleItemDto],
   })
-  muscles: ExerciseMuscleItemDto[];
+  muscles?: ExerciseMuscleItemDto[];
 
   @Expose({ name: 'equipment_links' })
   @Type(() => ExerciseEquipmentDto)
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [ExerciseEquipmentDto],
   })
-  equipmentLinks: ExerciseEquipmentDto[];
+  equipmentLinks?: ExerciseEquipmentDto[];
 }
 
 class WorkoutSetPerformanceDto {
