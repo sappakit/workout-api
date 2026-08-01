@@ -44,12 +44,8 @@ export class ExerciseService {
       relations: {
         category: true,
         media: true,
-        muscles: {
-          muscle: true,
-        },
-        equipment_links: {
-          equipment: true,
-        },
+        muscles: { muscle: true },
+        equipment_links: { equipment: true },
       },
       order: {
         name: 'ASC',

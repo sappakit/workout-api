@@ -173,16 +173,6 @@ export class FinishWorkoutSessionSetDto extends WorkoutSetValueDto {
   })
   id?: number | null;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @ApiPropertyOptional({
-    type: Number,
-    nullable: true,
-  })
-  workoutExerciseSetId?: number | null;
-
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -218,16 +208,6 @@ export class FinishWorkoutSessionExerciseDto {
     nullable: true,
   })
   id?: number | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @ApiPropertyOptional({
-    type: Number,
-    nullable: true,
-  })
-  workoutExerciseId?: number | null;
 
   @Type(() => Number)
   @IsInt()
