@@ -5,12 +5,12 @@ import {
 } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
+  ContentStatus,
   DifficultyLevel,
   EquipmentCategory,
   ExerciseMediaType,
   ExerciseMuscleRole,
   ExerciseOrigin,
-  ExerciseStatus,
 } from 'src/workout/enums/workout.enum';
 
 export class MuscleDto {
@@ -258,8 +258,8 @@ export class ExerciseDto extends ExerciseConfigDto {
   origin: ExerciseOrigin;
 
   @Expose()
-  @ApiProperty({ enum: ExerciseStatus })
-  status: ExerciseStatus;
+  @ApiProperty({ enum: ContentStatus })
+  status: ContentStatus;
 
   @Expose()
   @ApiProperty()

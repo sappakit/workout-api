@@ -5,6 +5,8 @@ import { ExerciseSourceSeeder } from './seeders/exercise-source.seeder';
 import { MuscleSeeder } from './seeders/muscle.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { UserSeeder } from './seeders/user.seeder';
+import { WorkoutFocusTypeSeeder } from './seeders/workout-focus-type.seeder';
+import { WorkoutSeeder } from './seeders/workout.seeder';
 import {
   SEED_ORDER,
   Seeder,
@@ -24,6 +26,8 @@ export class SeedService {
     private readonly exerciseCategorySeeder: ExerciseCategorySeeder,
     private readonly equipmentSeeder: EquipmentSeeder,
     private readonly muscleSeeder: MuscleSeeder,
+    private readonly workoutFocusTypeSeeder: WorkoutFocusTypeSeeder,
+    private readonly workoutSeeder: WorkoutSeeder,
   ) {
     this.seeders = {
       role: this.roleSeeder,
@@ -32,6 +36,8 @@ export class SeedService {
       'exercise-category': this.exerciseCategorySeeder,
       equipment: this.equipmentSeeder,
       muscle: this.muscleSeeder,
+      'workout-focus-type': this.workoutFocusTypeSeeder,
+      workout: this.workoutSeeder,
     };
   }
 

@@ -1757,18 +1757,10 @@ export class WorkoutService {
     }
 
     const workout = await this.workoutRepo.findOne({
-      where: [
-        // User's own workout
-        {
-          id: dto.workoutId,
-          user: { id: user.sub },
-        },
-        // Public workout plan
-        {
-          id: dto.workoutId,
-          is_public: true,
-        },
-      ],
+      where: {
+        id: dto.workoutId,
+        user: { id: user.sub },
+      },
     });
 
     if (!workout) {
@@ -1859,18 +1851,10 @@ export class WorkoutService {
     const workouts =
       workoutIds.length > 0
         ? await this.workoutRepo.find({
-            where: [
-              // User's own workout
-              {
-                id: In(workoutIds),
-                user: { id: user.sub },
-              },
-              // Public workout plan
-              {
-                id: In(workoutIds),
-                is_public: true,
-              },
-            ],
+            where: {
+              id: In(workoutIds),
+              user: { id: user.sub },
+            },
           })
         : [];
 
@@ -1901,7 +1885,8 @@ export class WorkoutService {
       const existingPlan = existingPlanByDay.get(dayDto.dayOfWeek);
 
       const workout =
-        dayDto.dayType === WorkoutWeeklyPlanDayType.WORKOUT && dayDto.workoutId
+        dayDto.dayType === WorkoutWeeklyPlanDayType.WORKOUT &&
+        dayDto.workoutId != null
           ? workoutById.get(dayDto.workoutId)!
           : null;
 

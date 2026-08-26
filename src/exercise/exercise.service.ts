@@ -101,18 +101,26 @@ export class ExerciseService {
   }
 
   async findOneExercise(id: number) {
-    const results = await this.exerciseRepo.findOne({
+    const result = await this.exerciseRepo.findOne({
       where: { id },
       relations: {
+        category: true,
+        media: true,
         muscles: { muscle: true },
+        equipment_links: { equipment: true },
+      },
+      order: {
+        media: {
+          display_order: 'ASC',
+        },
       },
     });
 
-    if (!results) {
-      throw new NotFoundException('Workout not found');
+    if (!result) {
+      throw new NotFoundException('Exercise not found');
     }
 
-    return results;
+    return result;
   }
 
   // Get performance summary for multiple exercises

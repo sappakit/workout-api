@@ -12,6 +12,8 @@ export const VALID_SEEDS = [
   'equipment',
   'muscle',
   'user',
+  'workout-focus-type',
+  'workout',
 ] as const;
 
 export type SeedName = (typeof VALID_SEEDS)[number];

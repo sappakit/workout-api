@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-// Write a JSON report to disk and return its resolved path.
+// Write JSON data to disk and return the resolved file path.
 export async function writeJsonReport(
   data: unknown,
   defaultPath: string,

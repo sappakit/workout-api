@@ -1,7 +1,7 @@
 import {
+  ContentStatus,
   DifficultyLevel,
   ExerciseOrigin,
-  ExerciseStatus,
 } from 'src/workout/enums/workout.enum';
 
 // Metadata
@@ -20,7 +20,7 @@ export type ExerciseMetadataImportRecord = {
   difficultyLevel: DifficultyLevel | null;
 
   origin: ExerciseOrigin;
-  status: ExerciseStatus;
+  status: ContentStatus;
 
   sourceCategory: string;
   sourceLevel: string;

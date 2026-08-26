@@ -1,7 +1,7 @@
 import {
+  ContentStatus,
   DifficultyLevel,
   ExerciseOrigin,
-  ExerciseStatus,
 } from 'src/workout/enums/workout.enum';
 import { FreeExerciseDbExercise } from '../types/free-exercise-db.types';
 import { ExerciseMetadataImportRecord } from '../types/import-result.types';
@@ -30,7 +30,7 @@ export function mapFreeExerciseDbExercise(
     difficultyLevel: mapDifficultyLevel(source.level),
 
     origin: ExerciseOrigin.SYSTEM,
-    status: ExerciseStatus.ACTIVE,
+    status: ContentStatus.ACTIVE,
 
     sourceCategory: source.category,
     sourceLevel: source.level,

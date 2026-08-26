@@ -1,8 +1,8 @@
+import { writeJsonReport } from 'db/utils/reports/write-json-report.util';
 import {
   ExerciseImageUploadErrorReport,
   ExerciseImageUploadResult,
 } from '../../types/import-result.types';
-import { writeJsonReport } from './write-json-report.util';
 
 const DEFAULT_UPLOAD_ERROR_REPORT_PATH =
   'db/imports/free-exercise-db/reports/image-upload-errors.json';

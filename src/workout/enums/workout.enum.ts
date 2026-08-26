@@ -19,11 +19,16 @@ export enum ExerciseMuscleRole {
   SECONDARY = 'secondary',
 }
 
-export enum ExerciseStatus {
+export enum ContentStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',
   HIDDEN = 'hidden',
   ARCHIVED = 'archived',
+}
+
+export enum WorkoutPlanType {
+  TEMPLATE = 'template',
+  USER_PLAN = 'user_plan',
 }
 
 export enum DifficultyLevel {

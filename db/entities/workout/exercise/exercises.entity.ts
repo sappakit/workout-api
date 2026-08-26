@@ -1,9 +1,9 @@
 import { User } from 'db/entities/auth/user.entity';
 import { BaseEntity } from 'db/entities/shared/base.entity';
 import {
+  ContentStatus,
   DifficultyLevel,
   ExerciseOrigin,
-  ExerciseStatus,
 } from 'src/workout/enums/workout.enum';
 import {
   Check,
@@ -70,8 +70,8 @@ export class Exercise extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: ExerciseOrigin.SYSTEM })
   origin: ExerciseOrigin;
 
-  @Column({ type: 'varchar', length: 20, default: ExerciseStatus.DRAFT })
-  status: ExerciseStatus;
+  @Column({ type: 'varchar', length: 20, default: ContentStatus.DRAFT })
+  status: ContentStatus;
 
   @Column({ type: 'varchar', length: 150 })
   name: string;
