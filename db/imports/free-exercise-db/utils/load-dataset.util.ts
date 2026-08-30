@@ -1,3 +1,8 @@
+import {
+  getNullableString,
+  getRequiredString,
+  isRecord,
+} from 'db/utils/parsing/json-value.util';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { FreeExerciseDbExercise } from '../types/free-exercise-db.types';
@@ -34,84 +39,53 @@ export async function loadFreeExerciseDbDataset(
 }
 
 function parseExercise(value: unknown, index: number): FreeExerciseDbExercise {
+  const context = `Exercise at index ${index}`;
+
   if (!isRecord(value)) {
-    throw new Error(`Exercise at index ${index} is not an object.`);
+    throw new Error(`${context} is not an object.`);
   }
 
   return {
-    id: getRequiredString(value, 'id', index),
-    name: getRequiredString(value, 'name', index),
+    id: getRequiredString(value, 'id', context),
+    name: getRequiredString(value, 'name', context),
 
-    force: getNullableString(value.force, 'force', index),
-    level: getRequiredString(value, 'level', index),
-    mechanic: getNullableString(value.mechanic, 'mechanic', index),
-    equipment: getNullableString(value.equipment, 'equipment', index),
+    force: getNullableString(value.force, 'force', context),
+    level: getRequiredString(value, 'level', context),
+    mechanic: getNullableString(value.mechanic, 'mechanic', context),
+    equipment: getNullableString(value.equipment, 'equipment', context),
 
     primaryMuscles: getStringArray(
       value.primaryMuscles,
       'primaryMuscles',
-      index,
+      context,
     ),
+
     secondaryMuscles: getStringArray(
       value.secondaryMuscles,
       'secondaryMuscles',
-      index,
+      context,
     ),
 
-    instructions: getStringArray(value.instructions, 'instructions', index),
-    category: getRequiredString(value, 'category', index),
-    images: getStringArray(value.images, 'images', index),
+    instructions: getStringArray(value.instructions, 'instructions', context),
+
+    category: getRequiredString(value, 'category', context),
+
+    images: getStringArray(value.images, 'images', context),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getRequiredString(
-  object: Record<string, unknown>,
-  key: string,
-  index: number,
-): string {
-  const value = object[key];
-
-  if (typeof value !== 'string' || value.trim() === '') {
-    throw new Error(`Exercise at index ${index} has invalid "${key}".`);
-  }
-
-  return value.trim();
-}
-
-function getNullableString(
-  value: unknown,
-  fieldName: string,
-  index: number,
-): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (typeof value !== 'string') {
-    throw new Error(`Exercise at index ${index} has invalid "${fieldName}".`);
-  }
-
-  const normalizedValue = value.trim();
-
-  return normalizedValue || null;
 }
 
 function getStringArray(
   value: unknown,
   fieldName: string,
-  index: number,
+  context: string,
 ): string[] {
   if (!Array.isArray(value)) {
-    throw new Error(`Exercise at index ${index} has invalid "${fieldName}".`);
+    throw new Error(`${context} has invalid "${fieldName}".`);
   }
 
   if (!value.every((item) => typeof item === 'string')) {
     throw new Error(
-      `Exercise at index ${index} contains a non-string value in "${fieldName}".`,
+      `${context} contains a non-string value in "${fieldName}".`,
     );
   }
 

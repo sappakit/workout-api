@@ -13,7 +13,7 @@ type PersistExerciseMediaParams = {
   uploadedImages: UploadedExerciseImage[];
 };
 
-export type PersistExerciseMediaResult = {
+type PersistExerciseMediaResult = {
   mediaCount: number;
 };
 

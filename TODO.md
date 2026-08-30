@@ -12,3 +12,4 @@
   - separate source values and local overrides. such as (source_name, name_override), (source_description, description_override) [more complex]
 - use checksum field to detect identical file contents (calculate from file.buffer) for media (images)
 - fix race window on startWorkoutSession
+- (import exercise: improve structure) move db validation on prepareMetadata/tracking type to persistence service

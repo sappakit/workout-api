@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role } from 'db/entities/auth/role.entity';
 import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { ExerciseTrackingType } from 'db/entities/workout/exercise/exercise-tracking-type.entity';
 import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
@@ -17,6 +18,7 @@ import { SeedService } from './seed.service';
 import { EquipmentSeeder } from './seeders/equipment.seeder';
 import { ExerciseCategorySeeder } from './seeders/exercise-category.seeder';
 import { ExerciseSourceSeeder } from './seeders/exercise-source.seeder';
+import { ExerciseTrackingTypeSeeder } from './seeders/exercise-tracking-type.seeder';
 import { MuscleSeeder } from './seeders/muscle.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { UserSeeder } from './seeders/user.seeder';
@@ -36,6 +38,7 @@ import { WorkoutSeeder } from './seeders/workout.seeder';
 
       ExerciseSource,
       ExerciseCategory,
+      ExerciseTrackingType,
       Exercise,
       Equipment,
       Muscle,
@@ -56,6 +59,7 @@ import { WorkoutSeeder } from './seeders/workout.seeder';
 
     ExerciseSourceSeeder,
     ExerciseCategorySeeder,
+    ExerciseTrackingTypeSeeder,
     EquipmentSeeder,
     MuscleSeeder,
 

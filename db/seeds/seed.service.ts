@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EquipmentSeeder } from './seeders/equipment.seeder';
 import { ExerciseCategorySeeder } from './seeders/exercise-category.seeder';
 import { ExerciseSourceSeeder } from './seeders/exercise-source.seeder';
+import { ExerciseTrackingTypeSeeder } from './seeders/exercise-tracking-type.seeder';
 import { MuscleSeeder } from './seeders/muscle.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { UserSeeder } from './seeders/user.seeder';
@@ -24,6 +25,7 @@ export class SeedService {
     private readonly userSeeder: UserSeeder,
     private readonly exerciseSourceSeeder: ExerciseSourceSeeder,
     private readonly exerciseCategorySeeder: ExerciseCategorySeeder,
+    private readonly exerciseTrackingTypeSeeder: ExerciseTrackingTypeSeeder,
     private readonly equipmentSeeder: EquipmentSeeder,
     private readonly muscleSeeder: MuscleSeeder,
     private readonly workoutFocusTypeSeeder: WorkoutFocusTypeSeeder,
@@ -34,6 +36,7 @@ export class SeedService {
       user: this.userSeeder,
       'exercise-source': this.exerciseSourceSeeder,
       'exercise-category': this.exerciseCategorySeeder,
+      'exercise-tracking-type': this.exerciseTrackingTypeSeeder,
       equipment: this.equipmentSeeder,
       muscle: this.muscleSeeder,
       'workout-focus-type': this.workoutFocusTypeSeeder,

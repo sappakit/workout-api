@@ -9,6 +9,11 @@ import { FreeExerciseDbImporterService } from './free-exercise-db-importer.servi
 import { FreeExerciseDbImportTask } from './types/free-exercise-db.types';
 import { getImportTask } from './utils/get-import-task.util';
 
+type ConfirmableImportTask = Extract<
+  FreeExerciseDbImportTask,
+  'metadata' | 'tracking-types' | 'images'
+>;
+
 async function bootstrap(): Promise<void> {
   const logger = new Logger('FreeExerciseDbImport');
 
@@ -70,12 +75,14 @@ function validateEnvironment(): void {
   }
 }
 
-function requiresConfirmation(task: FreeExerciseDbImportTask): boolean {
-  return task === 'metadata' || task === 'images';
+function requiresConfirmation(
+  task: FreeExerciseDbImportTask,
+): task is ConfirmableImportTask {
+  return task === 'metadata' || task === 'tracking-types' || task === 'images';
 }
 
 async function confirmImport(
-  task: FreeExerciseDbImportTask,
+  task: ConfirmableImportTask,
   logger: Logger,
 ): Promise<boolean> {
   logger.warn(getConfirmationWarning(task));
@@ -98,22 +105,25 @@ async function confirmImport(
   }
 }
 
-function getConfirmationWarning(task: FreeExerciseDbImportTask): string {
+function getConfirmationWarning(task: ConfirmableImportTask): string {
   switch (task) {
     case 'metadata':
       return [
-        'This operation will upsert Free Exercise DB exercise metadata',
+        'This operation will upsert Free Exercise DB exercise metadata.',
         'Existing imported values may be overwritten.',
+      ].join(' ');
+
+    case 'tracking-types':
+      return [
+        'This operation will update tracking types for Free Exercise DB exercises.',
+        'Existing tracking-type values may be overwritten.',
       ].join(' ');
 
     case 'images':
       return [
-        'This operation will upload Free Exercise DB images to Cloudinary',
+        'This operation will upload Free Exercise DB images to Cloudinary.',
         'Existing imported media values may be overwritten.',
       ].join(' ');
-
-    case 'inspect':
-      return 'Inspection does not modify the database or Cloudinary.';
   }
 }
 
@@ -124,6 +134,9 @@ function getSuccessMessage(task: FreeExerciseDbImportTask): string {
 
     case 'metadata':
       return 'Free Exercise DB metadata import completed successfully.';
+
+    case 'tracking-types':
+      return 'Free Exercise DB tracking-type import completed successfully.';
 
     case 'images':
       return 'Free Exercise DB image import completed successfully.';

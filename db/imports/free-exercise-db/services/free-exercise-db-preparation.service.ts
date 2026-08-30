@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
+import { ExerciseTrackingType } from 'db/entities/workout/exercise/exercise-tracking-type.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { Repository } from 'typeorm';
@@ -10,6 +11,8 @@ import { mapFreeExerciseDbExercise } from '../mappers/exercise.mapper';
 import {
   FreeExerciseDbImportOptions,
   FreeExerciseDbReferences,
+  FreeExerciseDbTrackingTypeMappingRecord,
+  FreeExerciseDbTrackingTypeReferences,
 } from '../types/free-exercise-db.types';
 import {
   ExerciseImageImportRecord,
@@ -23,30 +26,40 @@ import {
   writeImportReport,
 } from '../utils/reports/inspection-report.util';
 import {
+  getRequiredTrackingTypeCodes,
+  loadTrackingTypeMapping,
+} from '../utils/tracking-type-mapping.util';
+import {
   getRequiredCategoryCodes,
   getRequiredEquipmentCodes,
   getRequiredMuscleCodes,
   validateMappedValues,
   validateNoDuplicateSourceIds,
   validateRequiredCodesExist,
+  validateTrackingTypeMappingCoverage,
 } from '../utils/validate-import.util';
 
 const FREE_EXERCISE_DB_SOURCE_KEY = 'free-exercise-db';
 
-export type FreeExerciseDbInspectionResult = {
+type FreeExerciseDbInspectionResult = {
   exerciseCount: number;
   imageCount: number;
   reportPath: string;
 };
 
-export type FreeExerciseDbMetadataPreparationResult = {
+type FreeExerciseDbMetadataPreparationResult = {
   records: ExerciseMetadataImportRecord[];
   references: FreeExerciseDbReferences;
 };
 
-export type FreeExerciseDbImagePreparationResult = {
+type FreeExerciseDbImagePreparationResult = {
   imageRecords: ExerciseImageImportRecord[];
   source: ExerciseSource;
+};
+
+type FreeExerciseDbTrackingTypePreparationResult = {
+  records: FreeExerciseDbTrackingTypeMappingRecord[];
+  references: FreeExerciseDbTrackingTypeReferences;
 };
 
 @Injectable()
@@ -65,6 +78,9 @@ export class FreeExerciseDbPreparationService {
 
     @InjectRepository(ExerciseSource)
     private readonly exerciseSourceRepo: Repository<ExerciseSource>,
+
+    @InjectRepository(ExerciseTrackingType)
+    private readonly exerciseTrackingTypeRepo: Repository<ExerciseTrackingType>,
   ) {}
 
   // Load and validate the complete dataset and write its inspection report.
@@ -134,6 +150,47 @@ export class FreeExerciseDbPreparationService {
 
     this.validateDatabaseReferences(records, references);
     this.logDatabaseValidationResults(references);
+
+    return {
+      records,
+      references,
+    };
+  }
+
+  // Load and validate tracking-type mappings before database persistence.
+  async prepareTrackingTypes(
+    options: FreeExerciseDbImportOptions,
+  ): Promise<FreeExerciseDbTrackingTypePreparationResult> {
+    const sourceExercises = await this.loadDataset(options.filePath);
+    const analysis = analyzeFreeExerciseDbDataset(sourceExercises);
+
+    validateNoDuplicateSourceIds(analysis.duplicateIds);
+
+    this.logger.log('Loading Free Exercise DB tracking-type mapping');
+
+    const records = await loadTrackingTypeMapping(
+      options.trackingTypeMappingPath,
+    );
+
+    validateTrackingTypeMappingCoverage(sourceExercises, records);
+
+    const references = await this.loadTrackingTypeReferences();
+    const requiredCodes = getRequiredTrackingTypeCodes(records);
+
+    validateRequiredCodesExist(
+      'exercise tracking types',
+      requiredCodes,
+      references.trackingTypesByCode,
+      'exercise-tracking-type',
+    );
+
+    this.logger.log(
+      `Validated ${requiredCodes.size} exercise tracking types against the database`,
+    );
+
+    this.logger.log(
+      `Validated tracking-type mappings for ${records.length} exercises`,
+    );
 
     return {
       records,
@@ -218,6 +275,22 @@ export class FreeExerciseDbPreparationService {
       ),
 
       musclesByCode: new Map(muscles.map((muscle) => [muscle.code, muscle])),
+    };
+  }
+
+  // Load seeded references required by the tracking-type importer.
+  private async loadTrackingTypeReferences(): Promise<FreeExerciseDbTrackingTypeReferences> {
+    const [source, trackingTypes] = await Promise.all([
+      this.loadExerciseSource(),
+      this.exerciseTrackingTypeRepo.find(),
+    ]);
+
+    return {
+      source,
+
+      trackingTypesByCode: new Map(
+        trackingTypes.map((trackingType) => [trackingType.code, trackingType]),
+      ),
     };
   }
 

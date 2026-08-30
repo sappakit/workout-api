@@ -248,6 +248,27 @@ class ExerciseConfigDto {
   defaultSets: number | null;
 }
 
+class ExerciseTrackingTypeDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
+  name: string;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  description: string | null;
+}
+
 export class ExerciseDto extends ExerciseConfigDto {
   @Expose()
   @ApiProperty()
@@ -274,8 +295,17 @@ export class ExerciseDto extends ExerciseConfigDto {
 
   @Expose()
   @Type(() => ExerciseCategoryDto)
-  @ApiPropertyOptional({ type: ExerciseCategoryDto })
+  @ApiPropertyOptional({
+    type: ExerciseCategoryDto,
+  })
   category?: ExerciseCategoryDto;
+
+  @Expose({ name: 'tracking_type' })
+  @Type(() => ExerciseTrackingTypeDto)
+  @ApiPropertyOptional({
+    type: ExerciseTrackingTypeDto,
+  })
+  trackingType?: ExerciseTrackingTypeDto;
 
   @Expose({ name: 'difficulty_level' })
   @ApiProperty({

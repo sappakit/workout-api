@@ -2,6 +2,10 @@ import {
   isSupportedEquipmentValue,
   mapMuscleCode,
 } from '../mappers/exercise.mapper';
+import {
+  FreeExerciseDbExercise,
+  FreeExerciseDbTrackingTypeMappingRecord,
+} from '../types/free-exercise-db.types';
 import { ExerciseMetadataImportRecord } from '../types/import-result.types';
 
 // Collect every unique category code required by the dataset.
@@ -47,6 +51,48 @@ export function validateNoDuplicateSourceIds(duplicateIds: string[]): void {
   throw new Error(
     `Duplicate source exercise IDs found: ${duplicateIds.join(', ')}`,
   );
+}
+
+// Ensure every source exercise has exactly one canonical tracking-type mapping.
+export function validateTrackingTypeMappingCoverage(
+  exercises: FreeExerciseDbExercise[],
+  mappings: FreeExerciseDbTrackingTypeMappingRecord[],
+): void {
+  const sourceIds = new Set(exercises.map((exercise) => exercise.id));
+
+  const mappingIds = new Set(mappings.map((mapping) => mapping.id));
+
+  const missingMappingIds = [...sourceIds]
+    .filter((id) => !mappingIds.has(id))
+    .sort();
+
+  const unknownMappingIds = [...mappingIds]
+    .filter((id) => !sourceIds.has(id))
+    .sort();
+
+  if (missingMappingIds.length === 0 && unknownMappingIds.length === 0) {
+    return;
+  }
+
+  const errors: string[] = [
+    'Tracking-type mapping does not match the Free Exercise DB dataset.',
+  ];
+
+  if (missingMappingIds.length > 0) {
+    errors.push(
+      `${missingMappingIds.length} source exercises do not have tracking-type mappings.`,
+      `Missing mapping IDs: ${missingMappingIds.join(', ')}.`,
+    );
+  }
+
+  if (unknownMappingIds.length > 0) {
+    errors.push(
+      `${unknownMappingIds.length} tracking-type mappings do not exist in the source dataset.`,
+      `Unknown mapping IDs: ${unknownMappingIds.join(', ')}.`,
+    );
+  }
+
+  throw new Error(errors.join(' '));
 }
 
 // Ensure every source value has a supported app mapping.

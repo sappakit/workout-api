@@ -8,6 +8,7 @@ import { ExerciseEquipment } from './entities/workout/exercise/exercise-equipmen
 import { ExerciseMedia } from './entities/workout/exercise/exercise-media.entity';
 import { ExerciseMuscle } from './entities/workout/exercise/exercise-muscles.entity';
 import { ExerciseSource } from './entities/workout/exercise/exercise-source.entity';
+import { ExerciseTrackingType } from './entities/workout/exercise/exercise-tracking-type.entity';
 import { ExerciseUserStat } from './entities/workout/exercise/exercise-user-stats.entity';
 import { Exercise } from './entities/workout/exercise/exercises.entity';
 import { Equipment } from './entities/workout/shared/equipment.entity';
@@ -39,6 +40,7 @@ export const AllEntities = [
   ExerciseMuscle,
   ExerciseUserStat,
   ExerciseCategory,
+  ExerciseTrackingType,
 
   Workout,
   WorkoutExercise,

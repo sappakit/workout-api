@@ -7,7 +7,9 @@ import {
   MuscleDto,
 } from 'src/exercise/dto/exercise-response.dto';
 import {
+  ContentStatus,
   WorkoutCurrentMode,
+  WorkoutPlanType,
   WorkoutProgressOverviewType,
   WorkoutScheduleStatus,
   WorkoutSessionStatus,
@@ -116,6 +118,25 @@ export class WorkoutDto {
   id: number;
 
   @Expose()
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  code: string | null;
+
+  @Expose({ name: 'plan_type' })
+  @ApiProperty({
+    enum: WorkoutPlanType,
+  })
+  planType: WorkoutPlanType;
+
+  @Expose()
+  @ApiProperty({
+    enum: ContentStatus,
+  })
+  status: ContentStatus;
+
+  @Expose()
   @ApiProperty()
   name: string;
 
@@ -150,6 +171,14 @@ export class WorkoutDto {
   @Type(() => WorkoutMuscleDto)
   @ApiPropertyOptional({ type: [WorkoutMuscleDto] })
   muscles?: WorkoutMuscleDto[];
+
+  @Expose({ name: 'source_workout' })
+  @Type(() => WorkoutDto)
+  @ApiPropertyOptional({
+    type: WorkoutDto,
+    nullable: true,
+  })
+  sourceWorkout?: WorkoutDto | null;
 
   @Expose({ name: 'workout_focus_type' })
   @Type(() => WorkoutFocusTypeDto)

@@ -5,15 +5,16 @@ export type Seeder = {
 };
 
 export const VALID_SEEDS = [
-  'all',
   'role',
+  'user',
   'exercise-source',
   'exercise-category',
+  'exercise-tracking-type',
   'equipment',
   'muscle',
-  'user',
   'workout-focus-type',
   'workout',
+  'all',
 ] as const;
 
 export type SeedName = (typeof VALID_SEEDS)[number];

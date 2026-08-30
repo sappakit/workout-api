@@ -21,6 +21,7 @@ import { ExerciseEquipment } from './exercise-equipment.entity';
 import { ExerciseMedia } from './exercise-media.entity';
 import { ExerciseMuscle } from './exercise-muscles.entity';
 import { ExerciseSource } from './exercise-source.entity';
+import { ExerciseTrackingType } from './exercise-tracking-type.entity';
 import { ExerciseUserStat } from './exercise-user-stats.entity';
 
 // Ensures system exercises have no owner, while user exercises must have one.
@@ -64,6 +65,7 @@ const EXERCISE_USER_SOURCE_CHECK = `
 @Check('CHK_exercises_user_source', EXERCISE_USER_SOURCE_CHECK)
 @Index(['owner'])
 @Index(['category'])
+@Index(['tracking_type'])
 @Index(['source', 'source_external_id'], { unique: true })
 @Entity({ schema: 'workout', name: 'exercises' })
 export class Exercise extends BaseEntity {
@@ -117,6 +119,14 @@ export class Exercise extends BaseEntity {
   })
   @JoinColumn({ name: 'exercise_category_id' })
   category: ExerciseCategory;
+
+  @ManyToOne(
+    () => ExerciseTrackingType,
+    (trackingType) => trackingType.exercises,
+    { nullable: false },
+  )
+  @JoinColumn({ name: 'exercise_tracking_type_id' })
+  tracking_type: ExerciseTrackingType | null;
 
   @ManyToOne(() => ExerciseSource, (source) => source.exercises, {
     nullable: true,
