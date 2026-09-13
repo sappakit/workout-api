@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User, UserProfile } from 'db/entities/auth';
+import { UserProfile } from 'db/entities/auth/user-profile.entity';
+import { User } from 'db/entities/auth/user.entity';
 import {
   CLOUDINARY_FOLDERS,
   CLOUDINARY_TRANSFORMATIONS,
@@ -23,8 +24,6 @@ export class UserService {
     // Repository
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(UserProfile)
-    private readonly userProfileRepo: Repository<UserProfile>,
   ) {}
 
   async getMyProfile(userId: number) {

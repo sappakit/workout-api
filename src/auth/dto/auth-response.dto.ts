@@ -1,18 +1,30 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
 class AuthUserProfileDto {
   @Expose({ name: 'first_name' })
-  @ApiProperty({ example: 'Joe' })
-  firstName: string;
+  @ApiProperty({
+    example: 'Joe',
+    type: String,
+    nullable: true,
+  })
+  firstName: string | null;
 
   @Expose({ name: 'last_name' })
-  @ApiProperty({ example: 'Doe' })
-  lastName: string;
+  @ApiProperty({
+    example: 'Doe',
+    type: String,
+    nullable: true,
+  })
+  lastName: string | null;
 
   @Expose({ name: 'image_url' })
-  @ApiProperty()
-  imageUrl: string;
+  @ApiProperty({
+    example: 'https://example.com/profile.jpg',
+    type: String,
+    nullable: true,
+  })
+  imageUrl: string | null;
 }
 
 export class AuthRoleDto {
@@ -44,13 +56,18 @@ export class AuthUserDto {
 
   @Expose()
   @Type(() => AuthUserProfileDto)
-  @ApiProperty()
-  profile: AuthUserProfileDto;
+  @ApiPropertyOptional({
+    type: AuthUserProfileDto,
+    nullable: true,
+  })
+  profile?: AuthUserProfileDto | null;
 
   @Expose()
   @Type(() => AuthRoleDto)
-  @ApiProperty()
-  role: AuthRoleDto;
+  @ApiPropertyOptional({
+    type: AuthRoleDto,
+  })
+  role?: AuthRoleDto;
 }
 
 export class LoginResponseDto {
@@ -64,7 +81,7 @@ export class LoginResponseDto {
 
   @Expose()
   @Type(() => AuthUserDto)
-  @ApiProperty({ type: () => AuthUserDto })
+  @ApiProperty({ type: AuthUserDto })
   user: AuthUserDto;
 }
 

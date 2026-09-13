@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import { Exercise, Muscle, WorkoutFocusType } from 'db/entities/workout';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
+import { WorkoutFocusType } from 'db/entities/workout/workout/workout-focus-types.entity';
 import { EntityManager, In } from 'typeorm';
 import { SaveWorkoutDto } from '../dto/workout-body.dto';
 

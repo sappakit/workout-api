@@ -1,11 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsInt, IsOptional } from 'class-validator';
-import {
-  ToNumberArray,
-  ToStringArray,
-} from 'src/common/decorators/transform.decorator';
+import { IsArray, IsInt, IsOptional } from 'class-validator';
+import { ToNumberArray } from 'src/common/decorators/transform.decorator';
 import { PagingDto } from 'src/common/dto/request.dto';
-import { ExerciseType } from 'src/workout/enums/workout.enum';
 
 export class GetExercisesPerformanceQueryDto {
   @IsOptional()
@@ -23,16 +19,16 @@ export class GetExercisesPerformanceQueryDto {
 
 export class ExerciseQueryDto extends PagingDto {
   @IsOptional()
-  @ToStringArray()
+  @ToNumberArray()
   @IsArray()
-  @IsEnum(ExerciseType, { each: true })
+  @IsInt({ each: true })
   @ApiPropertyOptional({
-    enum: ExerciseType,
+    type: Number,
     isArray: true,
-    description: 'Filter by exercise types.',
-    example: [ExerciseType.STRENGTH, ExerciseType.CARDIO],
+    description: 'Filter by exercise category IDs.',
+    example: [1, 2],
   })
-  exerciseTypes?: ExerciseType[];
+  categoryIds?: number[];
 
   @IsOptional()
   @ToNumberArray()

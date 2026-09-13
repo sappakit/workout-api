@@ -7,8 +7,9 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Exercise } from '../exercise';
-import { Workout, WorkoutExerciseSet } from '.';
+import { Exercise } from '../exercise/exercises.entity';
+import { WorkoutExerciseSet } from './workout-exercise-sets.entity';
+import { Workout } from './workouts.entity';
 
 @Index(['exercise'])
 @Index(['workout', 'order_index'], { unique: true })
@@ -21,7 +22,7 @@ export class WorkoutExercise {
   order_index: number;
 
   @Column({ type: 'int', nullable: true, comment: 'seconds' })
-  rest_time?: number | null;
+  rest_time: number | null;
 
   @ManyToOne(() => Workout, (workout) => workout.workout_exercises, {
     nullable: false,
@@ -29,12 +30,13 @@ export class WorkoutExercise {
   @JoinColumn({ name: 'workout_id' })
   workout: Workout;
 
-  @ManyToOne(() => Exercise, {
-    nullable: false,
-  })
+  @ManyToOne(() => Exercise, { nullable: false })
   @JoinColumn({ name: 'exercise_id' })
   exercise: Exercise;
 
-  @OneToMany(() => WorkoutExerciseSet, (set) => set.workout_exercise)
+  @OneToMany(
+    () => WorkoutExerciseSet,
+    (workoutExerciseSet) => workoutExerciseSet.workout_exercise,
+  )
   sets: WorkoutExerciseSet[];
 }

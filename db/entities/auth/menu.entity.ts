@@ -15,7 +15,7 @@ export class Menu {
 
   @ManyToOne(() => Menu, (menu) => menu.children, { nullable: true })
   @JoinColumn({ name: 'parent_id' })
-  parent?: Menu;
+  parent: Menu | null;
 
   @OneToMany(() => Menu, (menu) => menu.parent)
   children: Menu[];
@@ -27,17 +27,17 @@ export class Menu {
   name: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  path?: string;
+  path: string | null;
 
   @Column({ type: 'int', nullable: true })
-  order?: number;
+  sort_order: number | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  icon?: string;
+  icon: string | null;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
-  @OneToMany(() => RoleMenu, (rm) => rm.menu)
+  @OneToMany(() => RoleMenu, (roleMenu) => roleMenu.menu)
   roleMenus: RoleMenu[];
 }

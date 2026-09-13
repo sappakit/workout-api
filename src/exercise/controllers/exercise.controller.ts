@@ -3,12 +3,14 @@ import { ApiResponse } from '@nestjs/swagger';
 import { ActiveUser } from 'src/auth/decorators/active-user.decorator';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { type ActiveUserData, AuthType } from 'src/auth/enums/auth.enum';
+import { PagingDto } from 'src/common/dto/request.dto';
 import { Serialize } from 'src/common/interceptors/serialize/serialize.decorator';
 import {
   ExerciseQueryDto,
   GetExercisesPerformanceQueryDto,
 } from '../dto/exercise-query.dto';
 import {
+  ExerciseCategoryDto,
   ExerciseDto,
   ExercisePerformanceByExerciseIdDto,
 } from '../dto/exercise-response.dto';
@@ -29,6 +31,19 @@ export class ExerciseController {
   @Serialize(ExerciseDto)
   async findAllExercises(@Query() query: ExerciseQueryDto) {
     return this.exerciseService.findAllExercises(query);
+  }
+
+  // Exercise categories
+  @Auth(AuthType.PUBLIC)
+  @Get('categories')
+  @ApiResponse({
+    status: 200,
+    description: 'Get all exercise categories',
+    type: ExerciseCategoryDto,
+  })
+  @Serialize(ExerciseCategoryDto)
+  async findAllExerciseCategories(@Query() query: PagingDto) {
+    return this.exerciseService.findAllExerciseCategories(query);
   }
 
   // Get exercise performance summaries (Previous/best)

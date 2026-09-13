@@ -4,6 +4,33 @@ export enum ExerciseType {
   CALISTHENICS = 'calisthenics',
 }
 
+export enum ExerciseMediaType {
+  IMAGE = 'image',
+  VIDEO = 'video',
+}
+
+export enum ExerciseOrigin {
+  SYSTEM = 'system',
+  USER = 'user',
+}
+
+export enum ExerciseMuscleRole {
+  PRIMARY = 'primary',
+  SECONDARY = 'secondary',
+}
+
+export enum ContentStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  HIDDEN = 'hidden',
+  ARCHIVED = 'archived',
+}
+
+export enum WorkoutPlanType {
+  TEMPLATE = 'template',
+  USER_PLAN = 'user_plan',
+}
+
 export enum DifficultyLevel {
   BEGINNER = 'beginner',
   INTERMEDIATE = 'intermediate',
@@ -26,8 +53,13 @@ export enum WorkoutSessionStatus {
 export enum EquipmentCategory {
   FREE_WEIGHT = 'free_weight',
   MACHINE = 'machine',
+  CABLE = 'cable',
   BODYWEIGHT = 'bodyweight',
+  RESISTANCE = 'resistance',
+  STABILITY = 'stability',
+  RECOVERY = 'recovery',
   ACCESSORY = 'accessory',
+  OTHER = 'other',
 }
 
 export enum WorkoutCurrentMode {

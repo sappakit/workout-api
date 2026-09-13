@@ -1,6 +1,6 @@
 import { Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Role } from './role.entity';
 import { Menu } from './menu.entity';
+import { Role } from './role.entity';
 
 @Entity({ schema: 'auth', name: 'role_menu' })
 export class RoleMenu {

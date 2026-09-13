@@ -1,9 +1,16 @@
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
+  ContentStatus,
   DifficultyLevel,
   EquipmentCategory,
-  ExerciseType,
+  ExerciseMediaType,
+  ExerciseMuscleRole,
+  ExerciseOrigin,
 } from 'src/workout/enums/workout.enum';
 
 export class MuscleDto {
@@ -13,7 +20,40 @@ export class MuscleDto {
 
   @Expose()
   @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
   name: string;
+}
+
+export class ExerciseCategoryDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
+  name: string;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  description: string | null;
+
+  @Expose({ name: 'display_order' })
+  @ApiProperty()
+  displayOrder: number;
+
+  @Expose({ name: 'is_active' })
+  @ApiProperty()
+  isActive: boolean;
 }
 
 export class EquipmentDto {
@@ -23,10 +63,14 @@ export class EquipmentDto {
 
   @Expose()
   @ApiProperty()
-  name: string;
+  code: string;
 
   @Expose()
   @ApiProperty()
+  name: string;
+
+  @Expose()
+  @ApiProperty({ enum: EquipmentCategory })
   category: EquipmentCategory;
 }
 
@@ -36,9 +80,13 @@ class ExerciseMuscleItemDto {
   id: number;
 
   @Expose()
+  @ApiProperty({ enum: ExerciseMuscleRole })
+  role: ExerciseMuscleRole;
+
+  @Expose()
   @Type(() => MuscleDto)
-  @ApiProperty({ type: () => MuscleDto })
-  muscle: MuscleDto;
+  @ApiPropertyOptional({ type: MuscleDto })
+  muscle?: MuscleDto;
 }
 
 class ExerciseEquipmentDto {
@@ -48,105 +96,319 @@ class ExerciseEquipmentDto {
 
   @Expose()
   @Type(() => EquipmentDto)
-  @ApiProperty({ type: () => EquipmentDto })
-  equipment: EquipmentDto;
+  @ApiPropertyOptional({ type: EquipmentDto })
+  equipment?: EquipmentDto;
 }
 
-export class ExerciseDto {
+class ExerciseSourceDto {
   @Expose()
   @ApiProperty()
   id: number;
 
   @Expose()
   @ApiProperty()
+  key: string;
+
+  @Expose()
+  @ApiProperty()
+  name: string;
+
+  @Expose({ name: 'source_url' })
+  @ApiProperty()
+  sourceUrl: string;
+
+  @Expose({ name: 'license_name' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  licenseName: string | null;
+
+  @Expose({ name: 'license_url' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  licenseUrl: string | null;
+
+  @Expose({ name: 'attribution_text' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  attributionText: string | null;
+
+  @Expose({ name: 'source_version' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  sourceVersion: string | null;
+
+  @Expose({ name: 'source_commit_hash' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  sourceCommitHash: string | null;
+
+  @Expose({ name: 'imported_at' })
+  @Type(() => Date)
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
+  importedAt: Date | null;
+}
+
+class ExerciseMediaDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose({ name: 'media_type' })
+  @ApiProperty({ enum: ExerciseMediaType })
+  mediaType: ExerciseMediaType;
+
+  @Expose()
+  @ApiProperty()
+  url: string;
+
+  @Expose({ name: 'public_id' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  publicId: string | null;
+
+  @Expose({ name: 'source_path' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  sourcePath: string | null;
+
+  @Expose({ name: 'display_order' })
+  @ApiProperty()
+  displayOrder: number;
+
+  @Expose({ name: 'is_primary' })
+  @ApiProperty()
+  isPrimary: boolean;
+
+  @Expose()
+  @Type(() => ExerciseSourceDto)
+  @ApiPropertyOptional({
+    type: ExerciseSourceDto,
+    nullable: true,
+  })
+  source?: ExerciseSourceDto | null;
+}
+
+class ExerciseConfigDto {
+  @Expose({ name: 'default_calories_burned' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'Default calories burned per set for strength exercises or per minute for cardio exercises.',
+  })
+  defaultCaloriesBurned: number | null;
+
+  @Expose({ name: 'default_duration' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Default exercise duration in seconds.',
+  })
+  defaultDuration: number | null;
+
+  @Expose({ name: 'default_rest_time' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Default rest time in seconds.',
+  })
+  defaultRestTime: number | null;
+
+  @Expose({ name: 'default_reps_range' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '8-12',
+  })
+  defaultRepsRange: string | null;
+
+  @Expose({ name: 'default_sets' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
+  defaultSets: number | null;
+}
+
+class ExerciseTrackingTypeDto {
+  @Expose()
+  @ApiProperty()
+  id: number;
+
+  @Expose()
+  @ApiProperty()
+  code: string;
+
+  @Expose()
+  @ApiProperty()
   name: string;
 
   @Expose()
-  @ApiProperty()
-  description: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  description: string | null;
+}
 
-  @Expose({ name: 'image_url' })
+export class ExerciseDto extends ExerciseConfigDto {
+  @Expose()
   @ApiProperty()
-  imageUrl: string;
+  id: number;
 
-  @Expose({ name: 'exercise_type' })
+  @Expose()
+  @ApiProperty({ enum: ExerciseOrigin })
+  origin: ExerciseOrigin;
+
+  @Expose()
+  @ApiProperty({ enum: ContentStatus })
+  status: ContentStatus;
+
+  @Expose()
   @ApiProperty()
-  exerciseType: ExerciseType;
+  name: string;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  description: string | null;
+
+  @Expose()
+  @Type(() => ExerciseCategoryDto)
+  @ApiPropertyOptional({
+    type: ExerciseCategoryDto,
+  })
+  category?: ExerciseCategoryDto;
+
+  @Expose({ name: 'tracking_type' })
+  @Type(() => ExerciseTrackingTypeDto)
+  @ApiPropertyOptional({
+    type: ExerciseTrackingTypeDto,
+  })
+  trackingType?: ExerciseTrackingTypeDto;
 
   @Expose({ name: 'difficulty_level' })
-  @ApiProperty()
-  difficultyLevel: DifficultyLevel;
-
-  @Expose({ name: 'default_calories_burned' })
-  @ApiProperty()
-  defaultCaloriesBurned: number;
-
-  @Expose({ name: 'default_duration' })
-  @ApiProperty()
-  defaultDuration: number;
-
-  @Expose({ name: 'default_rest_time' })
-  @ApiProperty()
-  defaultRestTime: number;
-
-  @Expose({ name: 'default_reps_range' })
-  @ApiProperty()
-  defaultRepsRange: string;
-
-  @Expose({ name: 'default_sets' })
-  @ApiProperty()
-  defaultSets: number;
+  @ApiProperty({
+    enum: DifficultyLevel,
+    nullable: true,
+  })
+  difficultyLevel: DifficultyLevel | null;
 
   @Expose({ name: 'demo_link' })
-  @ApiProperty()
-  demoLink: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  demoLink: string | null;
 
   @Expose({ name: 'how_to_perform' })
-  @ApiProperty()
-  howToPerform: string;
+  @ApiProperty({
+    type: [String],
+    nullable: true,
+  })
+  howToPerform: string[] | null;
+
+  @Expose({ name: 'source_external_id' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
+  sourceExternalId: string | null;
+
+  @Expose()
+  @Type(() => ExerciseSourceDto)
+  @ApiPropertyOptional({
+    type: ExerciseSourceDto,
+    nullable: true,
+  })
+  source?: ExerciseSourceDto | null;
+
+  @Expose()
+  @Type(() => ExerciseMediaDto)
+  @ApiPropertyOptional({
+    type: [ExerciseMediaDto],
+  })
+  media?: ExerciseMediaDto[];
 
   @Expose()
   @Type(() => ExerciseMuscleItemDto)
-  @ApiProperty({ type: () => [ExerciseMuscleItemDto] })
-  muscles: ExerciseMuscleItemDto[];
+  @ApiPropertyOptional({
+    type: [ExerciseMuscleItemDto],
+  })
+  muscles?: ExerciseMuscleItemDto[];
 
   @Expose({ name: 'equipment_links' })
   @Type(() => ExerciseEquipmentDto)
-  @ApiProperty({ type: () => [ExerciseEquipmentDto] })
-  equipmentLinks: ExerciseEquipmentDto[];
+  @ApiPropertyOptional({
+    type: [ExerciseEquipmentDto],
+  })
+  equipmentLinks?: ExerciseEquipmentDto[];
 }
 
 class WorkoutSetPerformanceDto {
-  @Expose()
+  @Expose({ name: 'set_number' })
   @ApiProperty()
   setNumber: number;
 
   @Expose()
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   weight: number | null;
 
   @Expose()
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   reps: number | null;
 
   @Expose()
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+  })
   distance: number | null;
 
   @Expose()
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Set duration in seconds.',
+  })
   duration: number | null;
 }
 
 export class ExercisePerformanceSummaryDto {
   @Expose()
   @Type(() => WorkoutSetPerformanceDto)
-  @ApiProperty({ type: () => [WorkoutSetPerformanceDto] })
+  @ApiProperty({ type: [WorkoutSetPerformanceDto] })
   previousSets: WorkoutSetPerformanceDto[];
 
   @Expose()
   @Type(() => WorkoutSetPerformanceDto)
-  @ApiProperty({ type: () => [WorkoutSetPerformanceDto] })
+  @ApiProperty({ type: [WorkoutSetPerformanceDto] })
   bestSets: WorkoutSetPerformanceDto[];
 }
 

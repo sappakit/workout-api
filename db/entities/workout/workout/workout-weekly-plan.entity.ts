@@ -1,5 +1,5 @@
-import { User } from 'db/entities/auth';
-import { BaseEntity } from 'db/entities/shared';
+import { User } from 'db/entities/auth/user.entity';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { WorkoutWeeklyPlanDayType } from 'src/workout/enums/workout.enum';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { Workout } from './workouts.entity';
@@ -23,7 +23,9 @@ export class WorkoutWeeklyPlan extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Workout, (workout) => workout.weekly_plans)
+  @ManyToOne(() => Workout, (workout) => workout.weekly_plans, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'workout_id' })
   workout: Workout | null;
 }

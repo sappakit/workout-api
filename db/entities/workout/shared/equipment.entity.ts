@@ -1,11 +1,14 @@
-import { BaseEntity } from 'db/entities/shared';
+import { BaseEntity } from 'db/entities/shared/base.entity';
 import { EquipmentCategory } from 'src/workout/enums/workout.enum';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { ExerciseEquipment } from '../exercise';
+import { ExerciseEquipment } from '../exercise/exercise-equipment.entity';
 
 @Entity({ schema: 'workout', name: 'equipment' })
 export class Equipment extends BaseEntity {
   @Column({ type: 'varchar', length: 50, unique: true })
+  code: string;
+
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'varchar', length: 30 })

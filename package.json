@@ -22,7 +22,10 @@
     "migration:generate": "pnpm typeorm migration:generate db/migrations/new_migration -d db/data-source.ts",
     "migration:run": "pnpm typeorm migration:run -d db/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d db/data-source.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "ts-node -r tsconfig-paths/register db/seeds/seed.ts",
+    "import:exercises": "ts-node -r tsconfig-paths/register db/imports/free-exercise-db/free-exercise-db-importer.ts",
+    "dev:exercise-tools": "ts-node -r tsconfig-paths/register db/imports/free-exercise-db/dev-tools/free-exercise-db-dev-tools.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -41,6 +44,7 @@
     "dotenv": "^17.2.3",
     "ioredis": "^5.9.3",
     "joi": "18.0.1",
+    "p-limit": "^7.3.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",

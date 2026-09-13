@@ -5,11 +5,19 @@ import {
   UploadApiErrorResponse,
   UploadApiResponse,
 } from 'cloudinary';
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import {
   CLOUDINARY_FOLDERS,
   CLOUDINARY_TRANSFORMATIONS,
 } from './cloudinary.constants';
+
+type UploadLocalImageOptions = {
+  folder: CLOUDINARY_FOLDERS;
+  publicId: string;
+  displayName?: string;
+  transformation?: CLOUDINARY_TRANSFORMATIONS;
+  overwrite?: boolean;
+};
 
 @Injectable()
 export class CloudinaryService {
@@ -59,6 +67,33 @@ export class CloudinaryService {
       console.error('Cloudinary upload error:', error);
 
       throw new InternalServerErrorException('Failed to upload image');
+    }
+  }
+
+  async uploadLocalImage(
+    filePath: string,
+    options: UploadLocalImageOptions,
+  ): Promise<UploadApiResponse> {
+    try {
+      return await cloudinary.uploader.upload(filePath, {
+        resource_type: 'image',
+        folder: options.folder,
+        public_id: options.publicId,
+        display_name: options.displayName,
+        overwrite: options.overwrite ?? true,
+        invalidate: true,
+        transformation: options.transformation,
+      });
+    } catch (error) {
+      console.error('Cloudinary local image upload error:', {
+        filePath,
+        publicId: options.publicId,
+        error,
+      });
+
+      throw new InternalServerErrorException(
+        `Failed to upload local image: ${filePath}`,
+      );
     }
   }
 

@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from './user.entity';
 import { RoleMenu } from './role-menu.entity';
+import { User } from './user.entity';
 
 @Entity({ schema: 'auth', name: 'role' })
 export class Role {
@@ -14,11 +14,11 @@ export class Role {
   name: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
   @OneToMany(() => User, (user) => user.role)
   users: User[];
 
-  @OneToMany(() => RoleMenu, (rm) => rm.role)
+  @OneToMany(() => RoleMenu, (roleMenu) => roleMenu.role)
   roleMenus: RoleMenu[];
 }

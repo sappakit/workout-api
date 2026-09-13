@@ -218,7 +218,6 @@ export class WorkoutController {
   }
 
   // Finish workout session
-  @Auth(AuthType.PUBLIC)
   @Patch('sessions/:id/finish')
   @ApiResponse({
     status: 200,
@@ -229,8 +228,9 @@ export class WorkoutController {
   async finishWorkoutSession(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: FinishWorkoutSessionDto,
+    @ActiveUser() user: ActiveUserData,
   ) {
-    return this.workoutService.finishWorkoutSession(id, body);
+    return this.workoutService.finishWorkoutSession(id, body, user);
   }
 
   // Cancel session

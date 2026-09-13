@@ -1,12 +1,12 @@
 import {
   Entity,
-  ManyToOne,
-  JoinColumn,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Workout } from '.';
-import { Muscle } from '../shared';
+import { Muscle } from '../shared/muscles.entity';
+import { Workout } from './workouts.entity';
 
 @Index(['muscle'])
 @Index(['workout', 'muscle'], { unique: true })

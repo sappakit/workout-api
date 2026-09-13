@@ -1,12 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Equipment,
-  Exercise,
-  Muscle,
-  WorkoutSessionExercise,
-  WorkoutSessionExerciseSet,
-} from 'db/entities/workout';
+import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
+import { Equipment } from 'db/entities/workout/shared/equipment.entity';
+import { Muscle } from 'db/entities/workout/shared/muscles.entity';
+import { WorkoutSessionExerciseSet } from 'db/entities/workout/workout/workout-session-exercise-sets.entity';
+import { WorkoutSessionExercise } from 'db/entities/workout/workout/workout-session-exercises.entity';
 import { ActiveUserData } from 'src/auth/enums/auth.enum';
 import { PagingDto } from 'src/common/dto/request.dto';
 import { PaginationService } from 'src/common/pagination/pagination.service';
@@ -35,21 +34,26 @@ export class ExerciseService {
     private readonly workoutSessionExerciseRepo: Repository<WorkoutSessionExercise>,
     @InjectRepository(WorkoutSessionExerciseSet)
     private readonly workoutSessionExerciseSetRepo: Repository<WorkoutSessionExerciseSet>,
+    @InjectRepository(ExerciseCategory)
+    private readonly exerciseCategoryRepo: Repository<ExerciseCategory>,
   ) {}
 
   // Exercises
   async findAllExercises(query: ExerciseQueryDto) {
     const options: FindManyOptions<Exercise> = {
-      relations: {
-        muscles: { muscle: true },
-        equipment_links: { equipment: true },
+      relations: this.getExerciseDetailRelations(),
+      order: {
+        name: 'ASC',
+        media: {
+          display_order: 'ASC',
+        },
       },
-      order: { name: 'ASC' },
     };
 
     const searchFields = [
       'name',
-      'exercise_type',
+      'category.name',
+      'category.code',
       'difficulty_level',
       'muscles.muscle.name',
       // 'equipment_links.equipment.name',
@@ -57,8 +61,8 @@ export class ExerciseService {
 
     const filters: RepositoryFilterConfig[] = [
       {
-        queryKey: 'exerciseTypes',
-        field: 'exercise_type',
+        queryKey: 'categoryIds',
+        field: 'category.id',
         operator: 'in',
       },
       {
@@ -92,18 +96,36 @@ export class ExerciseService {
   }
 
   async findOneExercise(id: number) {
-    const results = await this.exerciseRepo.findOne({
+    const result = await this.exerciseRepo.findOne({
       where: { id },
-      relations: {
-        muscles: { muscle: true },
+      relations: this.getExerciseDetailRelations(),
+      order: {
+        media: {
+          display_order: 'ASC',
+        },
       },
     });
 
-    if (!results) {
-      throw new NotFoundException('Workout not found');
+    if (!result) {
+      throw new NotFoundException('Exercise not found');
     }
 
-    return results;
+    return result;
+  }
+
+  // Exercise relations shared by list and detail queries.
+  private getExerciseDetailRelations() {
+    return {
+      category: true,
+      tracking_type: true,
+      media: true,
+      muscles: {
+        muscle: true,
+      },
+      equipment_links: {
+        equipment: true,
+      },
+    } as const;
   }
 
   // Get performance summary for multiple exercises
@@ -291,6 +313,25 @@ export class ExerciseService {
 
     return this.paginationService.paginateRepository(
       this.equipmentRepo,
+      options,
+      query,
+    );
+  }
+
+  // Exercise categories
+  async findAllExerciseCategories(query: PagingDto) {
+    const options: FindManyOptions<ExerciseCategory> = {
+      where: {
+        is_active: true,
+      },
+      order: {
+        display_order: 'ASC',
+        name: 'ASC',
+      },
+    };
+
+    return this.paginationService.paginateRepository(
+      this.exerciseCategoryRepo,
       options,
       query,
     );
