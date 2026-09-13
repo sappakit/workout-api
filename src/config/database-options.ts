@@ -1,6 +1,6 @@
 import { AllEntities } from 'db/entities';
 import { DataSourceOptions } from 'typeorm';
-import { getDBEnv } from 'utils/getDBEnv.util';
+import { getDBEnv } from 'utils/env.util';
 
 type EnvGetter = (key: string) => string | undefined;
 

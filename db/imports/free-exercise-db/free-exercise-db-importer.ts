@@ -1,9 +1,8 @@
-import 'dotenv/config';
-
 import { INestApplicationContext, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { stdin as input, stdout as output } from 'node:process';
 import { createInterface } from 'node:readline/promises';
+import { assertDevelopmentEnvironment } from 'utils/env.util';
 import { FreeExerciseDbImporterModule } from './free-exercise-db-importer.module';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
 import { FreeExerciseDbImportTask } from './types/free-exercise-db.types';
@@ -20,7 +19,7 @@ async function bootstrap(): Promise<void> {
   let app: INestApplicationContext | undefined;
 
   try {
-    validateEnvironment();
+    assertDevelopmentEnvironment();
 
     const task = getImportTask();
 
@@ -59,19 +58,6 @@ async function bootstrap(): Promise<void> {
     process.exitCode = 1;
   } finally {
     await app?.close();
-  }
-}
-
-function validateEnvironment(): void {
-  const nodeEnv = process.env.NODE_ENV;
-
-  if (nodeEnv !== 'development') {
-    throw new Error(
-      [
-        'Exercise import currently requires NODE_ENV=development.',
-        `Current NODE_ENV: ${nodeEnv ?? 'undefined'}.`,
-      ].join(' '),
-    );
   }
 }
 

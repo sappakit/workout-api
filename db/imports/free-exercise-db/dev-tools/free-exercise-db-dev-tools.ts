@@ -1,7 +1,6 @@
-import 'dotenv/config';
-
 import { INestApplicationContext, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { assertDevelopmentEnvironment } from 'utils/env.util';
 import { FreeExerciseDbDevToolsModule } from './free-exercise-db-dev-tools.module';
 import { FreeExerciseDbDevToolsService } from './free-exercise-db-dev-tools.service';
 import { FreeExerciseDbDevToolTask } from './types/free-exercise-db-dev-tools.types';
@@ -13,6 +12,8 @@ async function bootstrap(): Promise<void> {
   let app: INestApplicationContext | undefined;
 
   try {
+    assertDevelopmentEnvironment();
+
     const task = getDevToolTask();
 
     logger.log(`Selected Free Exercise DB dev tool task: ${task}`);

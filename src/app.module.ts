@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { loadLocalEnv } from 'utils/env.util';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -13,10 +14,13 @@ import { HashingModule } from './hashing/hashing.module';
 import { UserModule } from './user/user.module';
 import { WorkoutModule } from './workout/workout.module';
 
+loadLocalEnv();
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       validationSchema: appEnvValidationSchema,
+      ignoreEnvFile: true,
     }),
 
     // Connect to database

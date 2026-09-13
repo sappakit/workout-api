@@ -14,6 +14,7 @@ import { Workout } from 'db/entities/workout/workout/workouts.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { seedEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';
+import { loadLocalEnv } from 'utils/env.util';
 import { SeedService } from './seed.service';
 import { EquipmentSeeder } from './seeders/equipment.seeder';
 import { ExerciseCategorySeeder } from './seeders/exercise-category.seeder';
@@ -25,10 +26,13 @@ import { UserSeeder } from './seeders/user.seeder';
 import { WorkoutFocusTypeSeeder } from './seeders/workout-focus-type.seeder';
 import { WorkoutSeeder } from './seeders/workout.seeder';
 
+loadLocalEnv();
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       validationSchema: seedEnvValidationSchema,
+      ignoreEnvFile: true,
     }),
 
     DatabaseModule,
