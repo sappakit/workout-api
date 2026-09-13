@@ -41,12 +41,7 @@ export class ExerciseService {
   // Exercises
   async findAllExercises(query: ExerciseQueryDto) {
     const options: FindManyOptions<Exercise> = {
-      relations: {
-        category: true,
-        media: true,
-        muscles: { muscle: true },
-        equipment_links: { equipment: true },
-      },
+      relations: this.getExerciseDetailRelations(),
       order: {
         name: 'ASC',
         media: {
@@ -103,12 +98,7 @@ export class ExerciseService {
   async findOneExercise(id: number) {
     const result = await this.exerciseRepo.findOne({
       where: { id },
-      relations: {
-        category: true,
-        media: true,
-        muscles: { muscle: true },
-        equipment_links: { equipment: true },
-      },
+      relations: this.getExerciseDetailRelations(),
       order: {
         media: {
           display_order: 'ASC',
@@ -121,6 +111,21 @@ export class ExerciseService {
     }
 
     return result;
+  }
+
+  // Exercise relations shared by list and detail queries.
+  private getExerciseDetailRelations() {
+    return {
+      category: true,
+      tracking_type: true,
+      media: true,
+      muscles: {
+        muscle: true,
+      },
+      equipment_links: {
+        equipment: true,
+      },
+    } as const;
   }
 
   // Get performance summary for multiple exercises

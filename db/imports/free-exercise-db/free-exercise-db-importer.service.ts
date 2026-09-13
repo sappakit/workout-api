@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { FreeExerciseDbImageUploadService } from './services/free-exercise-db-image-upload.service';
 import { FreeExerciseDbMediaPersistenceService } from './services/free-exercise-db-media-persistence.service';
 import { FreeExerciseDbPersistenceService } from './services/free-exercise-db-persistence.service';
 import { FreeExerciseDbPreparationService } from './services/free-exercise-db-preparation.service';
 import { FreeExerciseDbTrackingTypePersistenceService } from './services/free-exercise-db-tracking-type-persistence.service';
 import {
+  FreeExerciseDbImageReferences,
   FreeExerciseDbImportOptions,
   FreeExerciseDbImportTask,
 } from './types/free-exercise-db.types';
-import { ExerciseImageImportRecord } from './types/import-result.types';
+import { PreparedExerciseImageImportRecord } from './types/import-result.types';
 import { writeImageUploadErrorReport } from './utils/reports/upload-error-report.util';
 
 @Injectable()
@@ -144,26 +144,48 @@ export class FreeExerciseDbImporterService {
     this.logger.log('Free Exercise DB tracking-type import completed.');
   }
 
-  // Validate, upload, and persist exercise image records.
+  // Validate images and upload only files whose content has changed.
   private async importImages(
     options: FreeExerciseDbImportOptions,
   ): Promise<void> {
     this.logger.warn(
       [
         'Starting the Free Exercise DB image import.',
-        'Images will be uploaded to Cloudinary and upserted into exercise_media.',
+        'Only new or changed images will be uploaded to Cloudinary.',
       ].join(' '),
     );
 
     const prepared = await this.preparationService.prepareImages(options);
 
-    await this.uploadAndPersistImages(prepared.imageRecords, prepared.source);
+    if (prepared.uploadImages === 0) {
+      this.logger.log(
+        [
+          `All ${prepared.totalImages} exercise images are unchanged.`,
+          'No Cloudinary uploads or exercise_media updates were required.',
+        ].join(' '),
+      );
+
+      return;
+    }
+
+    await this.uploadAndPersistImages(
+      prepared.imageRecords,
+      prepared.references,
+    );
+
+    this.logger.log(
+      [
+        'Free Exercise DB image import completed.',
+        `Uploaded ${prepared.uploadImages} changed images.`,
+        `Skipped ${prepared.skippedImages} unchanged images.`,
+      ].join(' '),
+    );
   }
 
-  // Upload local images and upsert their exercise_media rows.
+  // Upload prepared images and persist them using validated references.
   private async uploadAndPersistImages(
-    imageRecords: ExerciseImageImportRecord[],
-    source: ExerciseSource,
+    imageRecords: PreparedExerciseImageImportRecord[],
+    references: FreeExerciseDbImageReferences,
   ): Promise<void> {
     const uploadResult = await this.imageUploadService.uploadAll(imageRecords);
 
@@ -191,14 +213,10 @@ export class FreeExerciseDbImporterService {
     }
 
     const mediaResult = await this.mediaPersistenceService.persist({
-      source,
       uploadedImages: uploadResult.uploadedImages,
+      references,
     });
 
     this.logger.log(`Upserted ${mediaResult.mediaCount} exercise_media rows`);
-
-    this.logger.log(
-      'Free Exercise DB image upload and database persistence completed.',
-    );
   }
 }

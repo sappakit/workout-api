@@ -3,15 +3,15 @@ import pLimit from 'p-limit';
 import { CLOUDINARY_FOLDERS } from 'src/cloudinary/cloudinary.constants';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import {
-  ExerciseImageImportItem,
-  ExerciseImageImportRecord,
   ExerciseImageUploadResult,
+  PreparedExerciseImageImportItem,
+  PreparedExerciseImageImportRecord,
   UploadedExerciseImage,
 } from '../types/import-result.types';
 
 type ImageUploadTask = {
   sourceExternalId: string;
-  image: ExerciseImageImportItem;
+  image: PreparedExerciseImageImportItem;
 };
 
 const CLOUDINARY_UPLOAD_CONCURRENCY = 10;
@@ -23,9 +23,9 @@ export class FreeExerciseDbImageUploadService {
 
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
-  // Upload all exercise images with limited parallel requests.
+  // Upload all prepared exercise images with limited parallel requests.
   async uploadAll(
-    records: ExerciseImageImportRecord[],
+    records: PreparedExerciseImageImportRecord[],
     concurrency = CLOUDINARY_UPLOAD_CONCURRENCY,
   ): Promise<ExerciseImageUploadResult> {
     this.validateConcurrency(concurrency);
@@ -34,7 +34,8 @@ export class FreeExerciseDbImageUploadService {
     const result = this.createEmptyResult(tasks.length);
 
     if (tasks.length === 0) {
-      this.logger.warn('No exercise images were available for upload.');
+      this.logger.warn('No changed exercise images were available for upload.');
+
       return result;
     }
 
@@ -57,9 +58,9 @@ export class FreeExerciseDbImageUploadService {
     return result;
   }
 
-  // Convert grouped exercise image records into individual upload tasks.
+  // Convert grouped prepared image records into individual upload tasks.
   private buildUploadTasks(
-    records: ExerciseImageImportRecord[],
+    records: PreparedExerciseImageImportRecord[],
   ): ImageUploadTask[] {
     return records.flatMap((record) =>
       record.images.map((image) => ({
@@ -94,6 +95,7 @@ export class FreeExerciseDbImageUploadService {
             return await this.uploadOne(task);
           } finally {
             processedCount += 1;
+
             this.logProgress(processedCount, tasks.length);
           }
         }),
@@ -125,7 +127,7 @@ export class FreeExerciseDbImageUploadService {
     }
   }
 
-  // Upload one local exercise image to its deterministic Cloudinary location.
+  // Upload one changed image to its deterministic Cloudinary location.
   private async uploadOne(
     task: ImageUploadTask,
   ): Promise<UploadedExerciseImage> {
@@ -154,6 +156,7 @@ export class FreeExerciseDbImageUploadService {
       sourcePath: task.image.sourcePath,
       displayOrder: task.image.displayOrder,
       isPrimary: task.image.isPrimary,
+      contentHash: task.image.contentHash,
       url: uploadedImage.secure_url,
       publicId: uploadedImage.public_id,
     };

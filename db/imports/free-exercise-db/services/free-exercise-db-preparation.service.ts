@@ -1,14 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseMedia } from 'db/entities/workout/exercise/exercise-media.entity';
 import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { ExerciseTrackingType } from 'db/entities/workout/exercise/exercise-tracking-type.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
-import { Repository } from 'typeorm';
+import { ExerciseMediaType } from 'src/workout/enums/workout.enum';
+import { In, Repository } from 'typeorm';
 import { mapFreeExerciseDbImages } from '../mappers/exercise-image.mapper';
 import { mapFreeExerciseDbExercise } from '../mappers/exercise.mapper';
 import {
+  FreeExerciseDbImagePreparationResult,
+  FreeExerciseDbImageReferences,
   FreeExerciseDbImportOptions,
   FreeExerciseDbReferences,
   FreeExerciseDbTrackingTypeMappingRecord,
@@ -16,8 +21,11 @@ import {
 } from '../types/free-exercise-db.types';
 import {
   ExerciseImageImportRecord,
+  ExerciseImagePreparationResult,
   ExerciseMetadataImportRecord,
+  PreparedExerciseImageImportItem,
 } from '../types/import-result.types';
+import { calculateFileContentHash } from '../utils/content-hash.util';
 import { inspectExerciseImages } from '../utils/inspect-images.util';
 import { loadFreeExerciseDbDataset } from '../utils/load-dataset.util';
 import {
@@ -52,11 +60,6 @@ type FreeExerciseDbMetadataPreparationResult = {
   references: FreeExerciseDbReferences;
 };
 
-type FreeExerciseDbImagePreparationResult = {
-  imageRecords: ExerciseImageImportRecord[];
-  source: ExerciseSource;
-};
-
 type FreeExerciseDbTrackingTypePreparationResult = {
   records: FreeExerciseDbTrackingTypeMappingRecord[];
   references: FreeExerciseDbTrackingTypeReferences;
@@ -81,6 +84,12 @@ export class FreeExerciseDbPreparationService {
 
     @InjectRepository(ExerciseTrackingType)
     private readonly exerciseTrackingTypeRepo: Repository<ExerciseTrackingType>,
+
+    @InjectRepository(Exercise)
+    private readonly exerciseRepo: Repository<Exercise>,
+
+    @InjectRepository(ExerciseMedia)
+    private readonly exerciseMediaRepo: Repository<ExerciseMedia>,
   ) {}
 
   // Load and validate the complete dataset and write its inspection report.
@@ -198,7 +207,7 @@ export class FreeExerciseDbPreparationService {
     };
   }
 
-  // Load and validate image records before uploading them.
+  // Load, validate, hash, and filter image records before Cloudinary upload.
   async prepareImages(
     options: FreeExerciseDbImportOptions,
   ): Promise<FreeExerciseDbImagePreparationResult> {
@@ -219,12 +228,221 @@ export class FreeExerciseDbPreparationService {
 
     this.validateImageInspection(imageInspection.missingFiles.length);
 
-    const source = await this.loadExerciseSource();
+    const references = await this.loadImageReferences(imageRecords);
+
+    const prepared = await this.prepareChangedImages(imageRecords, references);
+
+    this.logger.log(
+      `Prepared ${prepared.uploadImages}/${prepared.totalImages} exercise images for upload`,
+    );
+
+    this.logger.log(
+      `Skipped ${prepared.skippedImages} unchanged exercise images`,
+    );
 
     return {
-      imageRecords,
-      source,
+      imageRecords: prepared.records,
+      references,
+      totalImages: prepared.totalImages,
+      uploadImages: prepared.uploadImages,
+      skippedImages: prepared.skippedImages,
     };
+  }
+
+  // Hash local images and remove records whose persisted content is unchanged.
+  private async prepareChangedImages(
+    records: ExerciseImageImportRecord[],
+    references: FreeExerciseDbImageReferences,
+  ): Promise<ExerciseImagePreparationResult> {
+    const existingMediaByKey = await this.loadExistingMedia(references);
+
+    const preparedRecords: ExerciseImagePreparationResult['records'] = [];
+
+    let totalImages = 0;
+    let uploadImages = 0;
+    let skippedImages = 0;
+
+    for (const record of records) {
+      const exercise = this.getRequiredImportedExercise(
+        references.exercisesByExternalId,
+        record.sourceExternalId,
+      );
+
+      const preparedImages: PreparedExerciseImageImportItem[] = [];
+
+      for (const image of record.images) {
+        totalImages += 1;
+
+        const contentHash = await calculateFileContentHash(image.absolutePath);
+
+        const mediaKey = this.buildMediaKey(exercise.id, image.displayOrder);
+
+        const existingMedia = existingMediaByKey.get(mediaKey);
+
+        if (existingMedia?.content_hash === contentHash) {
+          skippedImages += 1;
+          continue;
+        }
+
+        preparedImages.push({
+          ...image,
+          contentHash,
+        });
+
+        uploadImages += 1;
+      }
+
+      if (preparedImages.length === 0) {
+        continue;
+      }
+
+      preparedRecords.push({
+        sourceExternalId: record.sourceExternalId,
+        images: preparedImages,
+      });
+    }
+
+    return {
+      records: preparedRecords,
+      totalImages,
+      uploadImages,
+      skippedImages,
+    };
+  }
+
+  // Load and validate database references required by the image importer.
+  private async loadImageReferences(
+    records: ExerciseImageImportRecord[],
+  ): Promise<FreeExerciseDbImageReferences> {
+    const source = await this.loadExerciseSource();
+
+    const exercisesByExternalId = await this.loadImportedExercises(
+      source,
+      records,
+    );
+
+    return {
+      source,
+      exercisesByExternalId,
+    };
+  }
+
+  // Load imported exercises referenced by the image dataset.
+  private async loadImportedExercises(
+    source: ExerciseSource,
+    records: ExerciseImageImportRecord[],
+  ): Promise<Map<string, Exercise>> {
+    const sourceExternalIds = [
+      ...new Set(records.map((record) => record.sourceExternalId)),
+    ];
+
+    if (sourceExternalIds.length === 0) {
+      return new Map();
+    }
+
+    const exercises = await this.exerciseRepo.find({
+      where: {
+        source: {
+          id: source.id,
+        },
+        source_external_id: In(sourceExternalIds),
+      },
+    });
+
+    const exercisesByExternalId = new Map<string, Exercise>();
+
+    for (const exercise of exercises) {
+      if (exercise.source_external_id) {
+        exercisesByExternalId.set(exercise.source_external_id, exercise);
+      }
+    }
+
+    this.validateAllImageExercisesExist(
+      sourceExternalIds,
+      exercisesByExternalId,
+    );
+
+    return exercisesByExternalId;
+  }
+
+  // Load existing imported image media for content-hash comparison.
+  private async loadExistingMedia(
+    references: FreeExerciseDbImageReferences,
+  ): Promise<Map<string, ExerciseMedia>> {
+    const exerciseIds = [...references.exercisesByExternalId.values()].map(
+      (exercise) => exercise.id,
+    );
+
+    if (exerciseIds.length === 0) {
+      return new Map();
+    }
+
+    const mediaRows = await this.exerciseMediaRepo.find({
+      where: {
+        exercise: {
+          id: In(exerciseIds),
+        },
+        source: {
+          id: references.source.id,
+        },
+        media_type: ExerciseMediaType.IMAGE,
+      },
+      relations: {
+        exercise: true,
+      },
+    });
+
+    return new Map(
+      mediaRows.map((media) => [
+        this.buildMediaKey(media.exercise.id, media.display_order),
+        media,
+      ]),
+    );
+  }
+
+  // Ensure every dataset exercise has already been imported into the database.
+  private validateAllImageExercisesExist(
+    sourceExternalIds: string[],
+    exercisesByExternalId: Map<string, Exercise>,
+  ): void {
+    const missingSourceExternalIds = sourceExternalIds.filter(
+      (sourceExternalId) => !exercisesByExternalId.has(sourceExternalId),
+    );
+
+    if (missingSourceExternalIds.length === 0) {
+      return;
+    }
+
+    const preview = missingSourceExternalIds.slice(0, 10).join(', ');
+
+    throw new Error(
+      [
+        `${missingSourceExternalIds.length} imported exercises were not found in the database.`,
+        `Missing source IDs: ${preview}`,
+        'Run the exercise metadata import before importing images.',
+      ].join(' '),
+    );
+  }
+
+  // Return a validated imported exercise from its source ID.
+  private getRequiredImportedExercise(
+    exercisesByExternalId: Map<string, Exercise>,
+    sourceExternalId: string,
+  ): Exercise {
+    const exercise = exercisesByExternalId.get(sourceExternalId);
+
+    if (!exercise) {
+      throw new Error(
+        `Validated exercise not found for source ID: ${sourceExternalId}`,
+      );
+    }
+
+    return exercise;
+  }
+
+  // Build the stable lookup key for an exercise media position.
+  private buildMediaKey(exerciseId: number, displayOrder: number): string {
+    return `${exerciseId}:${displayOrder}`;
   }
 
   // Load the raw Free Exercise DB dataset from disk.

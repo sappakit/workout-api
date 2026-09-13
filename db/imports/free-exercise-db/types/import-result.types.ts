@@ -7,27 +7,21 @@ import {
 // Metadata
 export type ExerciseMetadataImportRecord = {
   sourceExternalId: string;
-
   name: string;
   description: string | null;
   howToPerform: string[] | null;
-
   categoryCode: string | null;
   equipmentCode: string | null;
   primaryMuscleCodes: string[];
   secondaryMuscleCodes: string[];
-
   difficultyLevel: DifficultyLevel | null;
-
   origin: ExerciseOrigin;
   status: ContentStatus;
-
   sourceCategory: string;
   sourceLevel: string;
   sourceEquipment: string | null;
   sourcePrimaryMuscles: string[];
   sourceSecondaryMuscles: string[];
-
   imagePaths: string[];
 };
 
@@ -42,6 +36,22 @@ export type ExerciseImageImportItem = {
 export type ExerciseImageImportRecord = {
   sourceExternalId: string;
   images: ExerciseImageImportItem[];
+};
+
+export type PreparedExerciseImageImportItem = ExerciseImageImportItem & {
+  contentHash: string;
+};
+
+export type PreparedExerciseImageImportRecord = {
+  sourceExternalId: string;
+  images: PreparedExerciseImageImportItem[];
+};
+
+export type ExerciseImagePreparationResult = {
+  records: PreparedExerciseImageImportRecord[];
+  totalImages: number;
+  uploadImages: number;
+  skippedImages: number;
 };
 
 export type MissingExerciseImageFile = {
@@ -62,6 +72,7 @@ export type UploadedExerciseImage = {
   sourcePath: string;
   displayOrder: number;
   isPrimary: boolean;
+  contentHash: string;
   url: string;
   publicId: string;
 };
@@ -83,16 +94,13 @@ export type ExerciseImageUploadResult = {
 export type DatasetAnalysis = {
   totalExercises: number;
   duplicateIds: string[];
-
   categories: Record<string, number>;
   levels: Record<string, number>;
   equipment: Record<string, number>;
   forceTypes: Record<string, number>;
   mechanics: Record<string, number>;
-
   primaryMuscles: Record<string, number>;
   secondaryMuscles: Record<string, number>;
-
   missingInstructions: number;
   missingImages: number;
 };

@@ -19,6 +19,14 @@ export class ExerciseMedia extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   source_path: string | null;
 
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    comment: 'SHA-256 hash',
+  })
+  content_hash: string | null;
+
   @Column({ type: 'int', default: 0 })
   display_order: number;
 

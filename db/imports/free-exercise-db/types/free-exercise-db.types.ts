@@ -1,9 +1,14 @@
 import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
 import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { ExerciseTrackingType } from 'db/entities/workout/exercise/exercise-tracking-type.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
-import { ExerciseMetadataImportRecord } from './import-result.types';
+import {
+  ExerciseMetadataImportRecord,
+  PreparedExerciseImageImportRecord,
+  UploadedExerciseImage,
+} from './import-result.types';
 
 export const FREE_EXERCISE_DB_IMPORT_TASKS = [
   'inspect',
@@ -52,6 +57,19 @@ export type FreeExerciseDbTrackingTypeReferences = {
   trackingTypesByCode: Map<string, ExerciseTrackingType>;
 };
 
+export type FreeExerciseDbImageReferences = {
+  source: ExerciseSource;
+  exercisesByExternalId: Map<string, Exercise>;
+};
+
+export type FreeExerciseDbImagePreparationResult = {
+  imageRecords: PreparedExerciseImageImportRecord[];
+  references: FreeExerciseDbImageReferences;
+  totalImages: number;
+  uploadImages: number;
+  skippedImages: number;
+};
+
 export type PersistFreeExerciseDbInput = {
   records: ExerciseMetadataImportRecord[];
   references: FreeExerciseDbReferences;
@@ -70,4 +88,13 @@ export type PersistFreeExerciseDbTrackingTypesInput = {
 
 export type PersistFreeExerciseDbTrackingTypesResult = {
   exerciseCount: number;
+};
+
+export type PersistFreeExerciseDbMediaInput = {
+  uploadedImages: UploadedExerciseImage[];
+  references: FreeExerciseDbImageReferences;
+};
+
+export type PersistFreeExerciseDbMediaResult = {
+  mediaCount: number;
 };

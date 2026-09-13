@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExerciseCategory } from 'db/entities/workout/exercise/exercise-category.entity';
+import { ExerciseMedia } from 'db/entities/workout/exercise/exercise-media.entity';
 import { ExerciseSource } from 'db/entities/workout/exercise/exercise-source.entity';
 import { ExerciseTrackingType } from 'db/entities/workout/exercise/exercise-tracking-type.entity';
+import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
@@ -23,12 +25,15 @@ import { FreeExerciseDbTrackingTypePersistenceService } from './services/free-ex
     }),
 
     DatabaseModule,
+
     TypeOrmModule.forFeature([
       ExerciseCategory,
-      Equipment,
-      Muscle,
       ExerciseSource,
       ExerciseTrackingType,
+      Exercise,
+      ExerciseMedia,
+      Equipment,
+      Muscle,
     ]),
 
     CloudinaryModule,

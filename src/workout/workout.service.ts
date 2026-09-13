@@ -1060,6 +1060,7 @@ export class WorkoutService {
       session_exercises: {
         exercise: {
           category: true,
+          tracking_type: true,
           media: true,
         },
         sets: true,
@@ -1583,6 +1584,7 @@ export class WorkoutService {
     });
   }
 
+  // TODO: refactor to handle all exercise tracking type
   private getBestPerformances(sessions: WorkoutSession[]) {
     const performanceMap = new Map<
       number,
