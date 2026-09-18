@@ -8,7 +8,16 @@ export function getDevToolTask(
 ): FreeExerciseDbDevToolTask {
   const toolArgs = args.slice(2).filter((arg) => arg !== '--');
 
-  const task = toolArgs[0] ?? 'tracking-types';
+  const task = toolArgs[0];
+
+  if (!task) {
+    throw new Error(
+      [
+        'Missing Free Exercise DB dev tool task.',
+        `Valid tasks: ${FREE_EXERCISE_DB_DEV_TOOL_TASKS.join(', ')}.`,
+      ].join(' '),
+    );
+  }
 
   if (
     !FREE_EXERCISE_DB_DEV_TOOL_TASKS.some((validTask) => validTask === task)

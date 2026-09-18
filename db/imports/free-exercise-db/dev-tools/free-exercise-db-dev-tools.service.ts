@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { FreeExerciseDbMediaMigrationService } from './services/free-exercise-db-media-migration.service';
 import { FreeExerciseDbTrackingTypeReviewService } from './services/free-exercise-db-tracking-type-review.service';
 import { FreeExerciseDbDevToolTask } from './types/free-exercise-db-dev-tools.types';
 
@@ -8,6 +9,7 @@ export class FreeExerciseDbDevToolsService {
 
   constructor(
     private readonly trackingTypeReviewService: FreeExerciseDbTrackingTypeReviewService,
+    private readonly mediaMigrationService: FreeExerciseDbMediaMigrationService,
   ) {}
 
   // Run the selected Free Exercise DB development tool.
@@ -25,6 +27,18 @@ export class FreeExerciseDbDevToolsService {
 
       case 'tracking-type-finalize':
         await this.generateTrackingTypeFinal();
+        return;
+
+      case 'media-export':
+        await this.exportMedia();
+        return;
+
+      case 'media-import-prepare':
+        await this.prepareMediaImport();
+        return;
+
+      case 'media-import-run':
+        await this.importMedia();
         return;
 
       default:
@@ -62,5 +76,38 @@ export class FreeExerciseDbDevToolsService {
     this.logger.log(
       `Free Exercise DB final tracking-type mapping generated: ${outputPath}`,
     );
+  }
+
+  // Export exercise media into a portable JSON manifest.
+  private async exportMedia(): Promise<void> {
+    const outputPath = await this.mediaMigrationService.exportMediaManifest();
+
+    this.logger.log(`Free Exercise DB media manifest generated: ${outputPath}`);
+  }
+
+  // Validate and prepare exercise media records without writing them.
+  private async prepareMediaImport(): Promise<void> {
+    const mediaRows = await this.mediaMigrationService.prepareMediaImport();
+
+    this.logger.log(
+      `Prepared ${mediaRows.length} exercise media rows successfully`,
+    );
+
+    this.logger.log('Inspection only. No exercise_media rows were modified.');
+  }
+
+  // Validate and upsert exercise media records from the portable manifest.
+  private async importMedia(): Promise<void> {
+    this.logger.warn(
+      [
+        'Starting the Free Exercise DB media migration import.',
+        'Exercise media rows will be upserted and existing values may be overwritten.',
+        'The "media-import-prepare" task should be run successfully before this task.',
+      ].join(' '),
+    );
+
+    const mediaCount = await this.mediaMigrationService.importMedia();
+
+    this.logger.log(`Upserted ${mediaCount} exercise_media rows`);
   }
 }

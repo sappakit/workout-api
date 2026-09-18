@@ -2,6 +2,9 @@ export const FREE_EXERCISE_DB_DEV_TOOL_TASKS = [
   'tracking-type-initial-input',
   'tracking-type-review-input',
   'tracking-type-finalize',
+  'media-export',
+  'media-import-prepare',
+  'media-import-run',
 ] as const;
 
 export type FreeExerciseDbDevToolTask =

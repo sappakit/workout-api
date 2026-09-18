@@ -78,6 +78,6 @@ export const seedEnvValidationSchema = combineValidationSchemas([
 ]);
 
 // Import command environment
-export const importEnvValidationSchema = combineValidationSchemas([
+export const databaseToolEnvValidationSchema = combineValidationSchemas([
   dbValidationSchema,
 ]);

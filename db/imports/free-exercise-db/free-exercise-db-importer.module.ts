@@ -9,7 +9,7 @@ import { Exercise } from 'db/entities/workout/exercise/exercises.entity';
 import { Equipment } from 'db/entities/workout/shared/equipment.entity';
 import { Muscle } from 'db/entities/workout/shared/muscles.entity';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
-import { importEnvValidationSchema } from 'src/config/env.validation';
+import { databaseToolEnvValidationSchema } from 'src/config/env.validation';
 import { DatabaseModule } from 'src/database/database.module';
 import { loadLocalEnv } from 'utils/env.util';
 import { FreeExerciseDbImporterService } from './free-exercise-db-importer.service';
@@ -24,7 +24,7 @@ loadLocalEnv();
 @Module({
   imports: [
     ConfigModule.forRoot({
-      validationSchema: importEnvValidationSchema,
+      validationSchema: databaseToolEnvValidationSchema,
       ignoreEnvFile: true,
     }),
 
